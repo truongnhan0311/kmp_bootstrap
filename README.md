@@ -1,6 +1,8 @@
 # kmp_bootstrap
 
 Bộ khung dùng chung cho app Kotlin Multiplatform (Android + iOS): **đủ đồ, cần gì lấy nấy** — giống cách Goravel cho backend.
+> Đây là **SDK nội bộ**. Agent/người mới: đọc [AGENTS.md](AGENTS.md) (pull về và kiểm tra trong 1 lệnh) rồi `docs/<module>.md` — mỗi mục có ví dụ chạy được.
+
 Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các module khác không bị kéo vào.
 
 ## Chọn module
@@ -10,6 +12,7 @@ Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các mo
 | `appkit-core` | `Language` (chữ theo ngôn ngữ), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
 | `appkit-network` | `AuthedClient` (JWT tự gắn + tự làm mới phiên), `HttpTransport` (failover, timeout, thử lại GET), `get/post/put/patch/delete`, `ApiError` có phân loại, cache GET, `Endpoints` (một chỗ khai báo đường dẫn), `AppKit.start()` | core + Ktor |
 | `appkit-push` | thông báo đẩy FCM: đăng ký thiết bị, điều hướng khi bấm | network (+ Firebase trên Android) |
+| `appkit-reminder` | nhắc giờ bằng thông báo cục bộ (chạy cả khi app tắt), nhắc lặp đúng giờ qua giờ mùa hè | core |
 | `appkit-ui` | component Material 3 kiểu shadcn + theme sinh từ CSS của web | Compose, không phụ thuộc module khác |
 
 Chỉ cần mã hoá và log? Lấy `appkit-core` — không có Ktor, không có Firebase (đã kiểm: `samples/core-only`).
@@ -80,21 +83,24 @@ Hai kiểu backend, một cơ chế: chỗ **duy nhất** khác nhau là `AuthCo
 appkit-core/      Language  Log  Storage  Stores  Crypto  TtlCache  Jwt
 appkit-network/   HttpTransport  AuthedClient  Requests  Endpoints  AuthContract  Failover  ApiError  Cache  AppKit
 appkit-push/      Push  PushNavigation                       → docs/push.md
+appkit-reminder/  Reminders  (Android AlarmManager, iOS UNUserNotificationCenter)  → docs/reminder.md
 appkit-ui/        Theme  Components
   mỗi module: src/{commonMain,commonTest,desktopMain,androidMain,iosMain}  (expect/actual cho phần theo nền tảng)
 tools/shadcn-theme.mjs   sinh AppColors sáng/tối từ CSS shadcn (node --test tools/)
 samples/core-only/       app mẫu chỉ lấy appkit-core
-docs/push.md             nối FCM cho Android + iOS (kèm mẫu AppDelegate.swift)
+docs/*.md                tài liệu từng module, mỗi mục có ví dụ CHÉP TỪ CODE ĐÃ CHẠY (node tools/sync-snippets.mjs)
+AGENTS.md                hướng dẫn cho agent: pull về, dùng, sửa
+CHANGELOG.md
 ```
 
 ## Chạy test
 
 ```sh
-./gradlew -PdesktopOnly=true desktopTest     # JVM — không cần Android SDK/Xcode
+./gradlew -PdesktopOnly=true desktopTest     # JVM (riêng :appkit-ui chỉ biên dịch được: compileTestKotlinDesktop) — không cần Android SDK/Xcode
 ./gradlew build                              # máy có Android Studio/Xcode: đủ Android + iOS
 node --test tools/                           # bộ sinh theme
 ```
 
-Đã kiểm trên JVM: 77 test (core 29, network 40, push 8) + 3 test bộ sinh theme.
-**Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, Swift), build Android/iOS;
-module `appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.
+Đã kiểm trên JVM: 102 test (core 41, network 41, push 10, reminder 10) + 3 test bộ sinh theme; ví dụ trong docs là code đã biên dịch và chạy.
+**Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, Swift), build Android/iOS;
+`appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.

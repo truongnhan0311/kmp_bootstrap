@@ -10,6 +10,28 @@ Mẫu lấy từ qt-depot (`QtDepotMessagingService`, `AppDelegate.swift`) và T
 - Không đưa bí mật vào thông báo (màn hình khoá và máy chủ Google/Apple đều thấy).
 
 ## Dùng trong app (common)
+
+<!-- snippet: push-register -->
+```kotlin
+val push = PushManager(client, prefs, DevicesPushContract(Endpoints.taper()), appVersion = "1.0",
+    tokenSource = PushTokenSource { "fcm-token" })     // app thật: bỏ tham số này, kit tự lấy token FCM của nền tảng
+val ok = push.registerIfNeeded(userKey = "user-1")      // sau đăng nhập và mỗi lần mở app; chỉ gọi server khi token/người dùng đổi
+push.unregister()                                       // TRƯỚC khi đăng xuất (sau đó không còn quyền gọi)
+```
+<!-- /snippet -->
+
+Điều hướng khi bấm thông báo:
+
+<!-- snippet: push-navigation -->
+```kotlin
+// nền tảng gọi khi người dùng bấm thông báo (Android: AppKitPush.handleIntent, iOS: AppDelegate); app quan sát và điều hướng
+PushNavigation.request(PushMessage.fromData(mapOf("type" to "activity", "uuid" to "abc")))
+val target = PushNavigation.target.value        // trong Compose: val target by PushNavigation.target.collectAsState()
+PushNavigation.consumed()                       // điều hướng xong thì xoá, để xoay màn hình không điều hướng lặp
+```
+<!-- /snippet -->
+
+Ví dụ cũ hơn:
 ```kotlin
 val push = PushManager(AppKit.client, AppKit.storage.prefs, DevicesPushContract(Endpoints.taper()), appVersion = "1.0")
 push.registerIfNeeded(userKey = user.id)   // sau đăng nhập và mỗi lần mở app — chỉ gọi server khi token/người dùng đổi
