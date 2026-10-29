@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kmp.bootstrap.appkit.SvgIcon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,6 +87,7 @@ fun AppButton(
     enabled: Boolean = true,
     busy: Boolean = false,
     fullWidth: Boolean = false,
+    icon: SvgIcon? = null,
     leading: (@Composable () -> Unit)? = null,
 ) {
     val c = A.colors
@@ -106,7 +108,8 @@ fun AppButton(
         if (busy) {
             CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = fg)
             Box(Modifier.size(8.dp))
-        } else if (leading != null) { leading(); Box(Modifier.size(8.dp)) }
+        } else if (icon != null) { AppIcon(icon, size = (size.font + 2).dp, color = fg.copy(alpha = alpha)); Box(Modifier.size(8.dp)) }
+        else if (leading != null) { leading(); Box(Modifier.size(8.dp)) }
         Text(text, style = A.type.body.copy(fontSize = size.font.sp), color = fg.copy(alpha = alpha))
     }
 }

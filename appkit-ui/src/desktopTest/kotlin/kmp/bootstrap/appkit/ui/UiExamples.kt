@@ -3,6 +3,7 @@ package kmp.bootstrap.appkit.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 /** VÍ DỤ của appkit-ui — chỉ BIÊN DỊCH (không chạy được ở môi trường dựng); xem ghi chú ở CoreExamples. */
 // region: ui-theme
@@ -63,5 +64,18 @@ fun HomeWithBlocks() {
 @Composable
 fun AppFrame(dark: AppColors, light: AppColors) {
     StarterHome(dark, light)        // trang chủ mẫu đầy đủ: header + nội dung (các block) + tab dưới — chép StarterHome.kt rồi thay dữ liệu
+}
+// endregion
+
+// region: ui-icons
+@Composable
+fun IconsDemo() {
+    Inline(gap = 3) {
+        AppIcon(AppIcons.Home)                                                  // 20dp, màu chữ (icon là file .svg → AppIcons)
+        AppIcon(AppIcons.Search, size = 24.dp, color = A.colors.primary)        // đổi cỡ và màu
+        AppButton("Thêm buổi", onClick = {}, icon = AppIcons.Plus)              // nút có icon (icon cùng màu chữ nút)
+    }
+    TabBar(listOf(TabItem("home", "Trang chủ", AppIcons.Home), TabItem("me", "Hồ sơ", AppIcons.User)), selected = "home") { }   // tab có icon
+    AppIcon("<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path d=\"M5 12h14\"/></svg>")           // hoặc SVG bất kỳ dạng chuỗi
 }
 // endregion

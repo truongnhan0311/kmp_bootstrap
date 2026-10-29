@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// appkit-ui: component Material 3 + theme sinh từ CSS shadcn (tools/shadcn-theme.mjs). Không phụ thuộc module nào khác.
+// appkit-ui: component Material 3 + theme sinh từ CSS shadcn (tools/shadcn-theme.mjs) + icon SVG. Chỉ cần appkit-core (bộ đọc SVG).
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeCompiler)
@@ -30,6 +30,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            api(project(":appkit-core"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)

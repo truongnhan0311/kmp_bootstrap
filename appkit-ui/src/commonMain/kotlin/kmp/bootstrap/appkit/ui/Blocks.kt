@@ -3,9 +3,11 @@ package kmp.bootstrap.appkit.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import kmp.bootstrap.appkit.SvgIcon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 /*
  * BLOCK dựng sẵn kiểu Bootstrap: mỗi block là một khối trang hoàn chỉnh, ghép chồng lên nhau trong `Page { }`.
@@ -41,7 +43,7 @@ fun StatGridBlock(items: List<StatItem>, modifier: Modifier = Modifier, columns:
     }
 }
 
-data class ListRow(val title: String, val subtitle: String? = null, val trailing: String? = null, val onClick: (() -> Unit)? = null, val leading: (@Composable () -> Unit)? = null)
+data class ListRow(val title: String, val subtitle: String? = null, val trailing: String? = null, val onClick: (() -> Unit)? = null, val icon: SvgIcon? = null, val leading: (@Composable () -> Unit)? = null, val chevron: Boolean = false)
 
 /** Danh sách trong một thẻ, các hàng ngăn bằng đường kẻ. Rỗng thì hiện [empty]. */
 @Composable
@@ -51,21 +53,27 @@ fun ListBlock(title: String, items: List<ListRow>, modifier: Modifier = Modifier
             if (items.isEmpty()) EmptyState(empty)
             items.forEachIndexed { i, row ->
                 if (i > 0) Divider()
-                ListItem(row.title, subtitle = row.subtitle, leading = row.leading, onClick = row.onClick,
-                    trailing = row.trailing?.let { t -> { Txt(t, A.type.numeric, A.colors.mutedForeground) } })
+                ListItem(row.title, subtitle = row.subtitle, onClick = row.onClick,
+                    leading = row.leading ?: row.icon?.let { k -> { AppIcon(k, size = 20.dp, color = A.colors.mutedForeground) } },
+                    trailing = if (row.trailing != null || row.chevron) ({
+                        Inline(gap = 1) {
+                            row.trailing?.let { Txt(it, A.type.numeric, A.colors.mutedForeground) }
+                            if (row.chevron) AppIcon(AppIcons.ChevronRight, size = 16.dp, color = A.colors.mutedForeground)
+                        }
+                    }) else null)
             }
         }
     }
 }
 
-data class Feature(val title: String, val description: String, val onClick: (() -> Unit)? = null)
+data class Feature(val title: String, val description: String, val onClick: (() -> Unit)? = null, val icon: SvgIcon? = null)
 
 /** Lưới thẻ tính năng / lối tắt: tiêu đề + mô tả ngắn, bấm được. */
 @Composable
 fun FeatureGridBlock(items: List<Feature>, modifier: Modifier = Modifier, columns: Int = 2, title: String? = null) {
     Section(title.orEmpty(), modifier) {
         Grid(columns = columns, gap = 3) {
-            items.forEach { f -> cell { AppCard(onClick = f.onClick, padding = androidx.compose.foundation.layout.PaddingValues(space(3))) { Txt(f.title, A.type.section); Muted(f.description) } } }
+            items.forEach { f -> cell { AppCard(onClick = f.onClick, padding = androidx.compose.foundation.layout.PaddingValues(space(3))) { if (f.icon != null) AppIcon(f.icon, Modifier.pb(2), size = 22.dp, color = A.colors.primary); Txt(f.title, A.type.section); Muted(f.description) } } }
         }
     }
 }

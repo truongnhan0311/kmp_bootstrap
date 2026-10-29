@@ -64,7 +64,7 @@ fun LayoutDemo() {
 
 ## Khung màn hình
 
-`AppScaffold` (thanh trên + nội dung + thanh dưới) → `AppHeader` (tiêu đề, nút quay lại, nút bên phải) → `Page` (cuộn dọc có lề) → `TabBar` (tab dưới).
+`AppScaffold` (thanh trên + nội dung + thanh dưới; `TabItem` nhận `icon`) → `AppHeader` (tiêu đề, nút quay lại, nút bên phải) → `Page` (cuộn dọc có lề) → `TabBar` (tab dưới).
 Rút từ UI của Taper nên khớp cách app thật dựng màn. Còn có `Section`, `ListItem`, `EmptyState`.
 
 ## Block (kiểu Bootstrap)
@@ -94,9 +94,40 @@ fun HomeWithBlocks() {
 ```
 <!-- /snippet -->
 
-## Trang chủ mẫu (điểm xuất phát)
+## Icon (SVG)
 
-`StarterHome` ghép khung màn + các block với dữ liệu giả: **chép file `StarterHome.kt` vào app rồi thay dữ liệu thật**. Không có logic, không gọi mạng.
+Icon là **file `.svg`**, không vẽ tay trong code. `appkit-ui/icons/` có 14 icon sẵn (home, list, search, user, settings, calendar, chart, bell, plus, chevron-right, check, x, arrow-left, sun).
+`tools/svg-to-kotlin.mjs` biến thư mục SVG thành object `AppIcons` (`chevron-right.svg` → `AppIcons.ChevronRight`); bộ đọc SVG (`SvgParser`, ở `appkit-core`, có test)
+đổi path/line/polyline/polygon/circle/ellipse/rect thành đường path và `AppIcon` vẽ bằng màu của theme (`stroke="currentColor"`). Không hỗ trợ gradient, transform, text, CSS (gặp thì bỏ qua, không ném lỗi).
+
+**Thêm icon của bạn** (Lucide, Heroicons, Feather, Tabler dùng được nguyên file):
+
+```sh
+cp ~/Downloads/heart.svg appkit-ui/icons/
+node tools/svg-to-kotlin.mjs appkit-ui/icons --package kmp.bootstrap.appkit.ui --out appkit-ui/src/commonMain/kotlin/kmp/bootstrap/appkit/ui/AppIcons.kt
+# → AppIcons.Heart
+```
+App có thư mục icon riêng: chạy script với `--package` và `--object` của app (ví dụ `--object MyIcons`) để không lẫn với bộ của kit.
+
+<!-- snippet: ui-icons -->
+```kotlin
+@Composable
+fun IconsDemo() {
+    Inline(gap = 3) {
+        AppIcon(AppIcons.Home)                                                  // 20dp, màu chữ (icon là file .svg → AppIcons)
+        AppIcon(AppIcons.Search, size = 24.dp, color = A.colors.primary)        // đổi cỡ và màu
+        AppButton("Thêm buổi", onClick = {}, icon = AppIcons.Plus)              // nút có icon (icon cùng màu chữ nút)
+    }
+    TabBar(listOf(TabItem("home", "Trang chủ", AppIcons.Home), TabItem("me", "Hồ sơ", AppIcons.User)), selected = "home") { }   // tab có icon
+    AppIcon("<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path d=\"M5 12h14\"/></svg>")           // hoặc SVG bất kỳ dạng chuỗi
+}
+```
+<!-- /snippet -->
+
+## App mẫu 5 tab (điểm xuất phát)
+
+`StarterApp` ghép khung màn + icon + các block với dữ liệu giả, năm tab: **Trang chủ, Hoạt động, Tìm kiếm, Hồ sơ, Cài đặt** (mỗi tab một màn mẫu).
+**Chép file `StarterHome.kt` vào app rồi thay dữ liệu thật.** Không có logic, không gọi mạng. Thêm tab = thêm giá trị vào `StarterTab`, một nhánh `when` ở `StarterApp`.
 
 <!-- snippet: ui-scaffold -->
 ```kotlin

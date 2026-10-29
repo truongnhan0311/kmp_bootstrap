@@ -9,11 +9,11 @@ Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các mo
 
 | Module | Có gì | Kéo theo |
 |---|---|---|
-| `appkit-core` | `Language` (chữ theo ngôn ngữ), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
+| `appkit-core` | `Language` (chữ theo ngôn ngữ), `SvgParser` (đọc SVG), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
 | `appkit-network` | `AuthedClient` (JWT tự gắn + tự làm mới phiên), `HttpTransport` (failover, timeout, thử lại GET), `get/post/put/patch/delete`, `ApiError` có phân loại, cache GET, `Endpoints` (một chỗ khai báo đường dẫn), `AppKit.start()` | core + Ktor |
 | `appkit-push` | thông báo đẩy FCM: đăng ký thiết bị, điều hướng khi bấm | network (+ Firebase trên Android) |
 | `appkit-reminder` | nhắc giờ bằng thông báo cục bộ (chạy cả khi app tắt), nhắc lặp đúng giờ qua giờ mùa hè | core |
-| `appkit-ui` | component Material 3 kiểu shadcn + theme sinh từ CSS của web | Compose, không phụ thuộc module khác |
+| `appkit-ui` | component Material 3 kiểu shadcn, theme sinh từ CSS của web, layout kiểu Tailwind, block kiểu Bootstrap, icon SVG, app mẫu 5 tab | core + Compose |
 
 Chỉ cần mã hoá và log? Lấy `appkit-core` — không có Ktor, không có Firebase (đã kiểm: `samples/core-only`).
 
@@ -101,6 +101,6 @@ CHANGELOG.md
 node --test tools/*.test.mjs                           # bộ sinh theme
 ```
 
-Đã kiểm trên JVM: 102 test (core 41, network 41, push 10, reminder 10) + 3 test bộ sinh theme; ví dụ trong docs là code đã biên dịch và chạy.
+Đã kiểm trên JVM: 108 test (core 47, network 41, push 10, reminder 10) + 6 test công cụ (bộ sinh theme, SVG → Kotlin); ví dụ trong docs là code đã biên dịch và chạy.
 **Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, Swift), build Android/iOS;
 `appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.

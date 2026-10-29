@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import kmp.bootstrap.appkit.SvgIcon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,9 +60,9 @@ fun AppHeader(title: String, modifier: Modifier = Modifier, onBack: (() -> Unit)
     }
 }
 
-data class TabItem<T>(val key: T, val label: String)
+data class TabItem<T>(val key: T, val label: String, val icon: SvgIcon? = null)
 
-/** Thanh tab dưới (điều hướng gốc): tab đang chọn có vạch màu chính phía trên chữ. */
+/** Thanh tab dưới (điều hướng gốc): tab đang chọn có vạch màu chính phía trên, icon và chữ đổi sang màu chính. */
 @Composable
 fun <T> TabBar(items: List<TabItem<T>>, selected: T, modifier: Modifier = Modifier, onSelect: (T) -> Unit) {
     Row(modifier.fillMaxWidth().bgCard().py(1)) {
@@ -69,7 +70,9 @@ fun <T> TabBar(items: List<TabItem<T>>, selected: T, modifier: Modifier = Modifi
             val active = item.key == selected
             Column(Modifier.weight(1f).onTap { onSelect(item.key) }.py(2), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(width = 24.dp, height = 3.dp).clip(CircleShape).background(if (active) A.colors.primary else Color.Transparent))
-                Txt(item.label, A.type.small, if (active) A.colors.foreground else A.colors.mutedForeground, Modifier.pt(1))
+                val tone = if (active) A.colors.primary else A.colors.mutedForeground
+                if (item.icon != null) AppIcon(item.icon, Modifier.pt(1), size = 22.dp, color = tone)
+                Txt(item.label, A.type.small.copy(fontSize = 11.sp), if (active) A.colors.foreground else A.colors.mutedForeground, Modifier.pt(1))
             }
         }
     }
