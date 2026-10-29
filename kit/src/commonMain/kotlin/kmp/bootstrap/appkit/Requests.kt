@@ -23,7 +23,7 @@ import kotlinx.serialization.serializer
  * Phản hồi 2xx mà JSON sai định dạng → ApiError(kind = Parse) (không đổ app bằng lỗi giải mã thô).
  */
 
-suspend inline fun <reified T> AuthedClient.get(path: String, auth: Boolean = true): T = request("GET", path, null, auth, serializer<T>())
+suspend inline fun <reified T> AuthedClient.get(path: String, auth: Boolean = true, cache: CachePolicy? = null): T = request("GET", path, null, auth, serializer<T>(), cache)
 suspend inline fun <reified T> AuthedClient.post(path: String, body: JsonObject? = null, auth: Boolean = true): T = request("POST", path, body, auth, serializer<T>())
 suspend inline fun <reified T> AuthedClient.put(path: String, body: JsonObject? = null, auth: Boolean = true): T = request("PUT", path, body, auth, serializer<T>())
 suspend inline fun <reified T> AuthedClient.patch(path: String, body: JsonObject? = null, auth: Boolean = true): T = request("PATCH", path, body, auth, serializer<T>())
@@ -44,12 +44,12 @@ fun <B> AuthedClient.encodeBody(body: B, serializer: KSerializer<B>): JsonObject
 }
 
 /** Như [get] nhưng 404 trả null — cho dữ liệu "có thể chưa có" (không phải sự cố). Lỗi khác vẫn ném. */
-suspend inline fun <reified T> AuthedClient.getOrNull(path: String, auth: Boolean = true): T? =
-    try { get<T>(path, auth) } catch (e: ApiError) { if (e.isNotFound) null else throw e }
+suspend inline fun <reified T> AuthedClient.getOrNull(path: String, auth: Boolean = true, cache: CachePolicy? = null): T? =
+    try { get<T>(path, auth, cache) } catch (e: ApiError) { if (e.isNotFound) null else throw e }
 
 /** Thực thi và giải mã; dùng bởi các hàm trên (public để inline gọi được). */
-suspend fun <T> AuthedClient.request(method: String, path: String, body: JsonObject?, auth: Boolean, serializer: KSerializer<T>): T {
-    val r = raw(method, path, body, auth)
+suspend fun <T> AuthedClient.request(method: String, path: String, body: JsonObject?, auth: Boolean, serializer: KSerializer<T>, cache: CachePolicy? = null): T {
+    val r = raw(method, path, body, auth, cachePolicy = cache)
     throwIfFailed(r, method, path)
     return try {
         json.decodeFromString(serializer, r.body)

@@ -52,6 +52,9 @@ class AuthedClient(
 
     private val refreshLock = Mutex()
 
+    /** Cache phản hồi GET (xem Cache.kt). Mặc định trong bộ nhớ; app đổi sang `ResponseCache(FileCacheStore(platformCacheDir(name)))` để còn sau khi mở lại. */
+    var cache: ResponseCache = ResponseCache()
+
     /** Lưu cặp token từ phản hồi đăng nhập/đăng ký. Trả false nếu phản hồi không có token. */
     fun storeLogin(response: RawResponse): Boolean {
         val pair = contract.parseTokens(response.status, response.body) ?: return false
@@ -60,7 +63,32 @@ class AuthedClient(
     }
 
     /** Gửi một request. `auth=false` cho đăng nhập/đăng ký/trang công khai. Không ném lỗi theo mã HTTP — xem [send]. */
-    suspend fun raw(method: String, path: String, body: JsonObject? = null, auth: Boolean = true, timeoutMs: Long? = null): RawResponse {
+    suspend fun raw(method: String, path: String, body: JsonObject? = null, auth: Boolean = true, timeoutMs: Long? = null, cachePolicy: CachePolicy? = null): RawResponse {
+        if (method == "GET" && cachePolicy != null) return cachedGet(path, auth, timeoutMs, cachePolicy)
+        val r = network(method, path, body, auth, timeoutMs)
+        if (method != "GET" && r.status in 200..299) cache.prefixesToInvalidate(path).forEach { cache.invalidate(it) }
+
+        return r
+    }
+
+    private suspend fun cachedGet(path: String, auth: Boolean, timeoutMs: Long?, policy: CachePolicy): RawResponse {
+        if (!policy.refresh) cache.lookup(path, policy)?.let { AppLog.d("cache", "GET $path hit"); return RawResponse(it.status, it.body, it.requestId) }
+        val fresh = try {
+            network("GET", path, null, auth, timeoutMs)
+        } catch (e: ApiError) {
+            val stale = if (policy.staleIfError && e.isRetryable) cache.lookup(path, policy, allowStale = true) else null
+            if (stale == null) throw e
+            AppLog.w("cache", "GET $path failed (${e.kind}) - serving stale copy")
+            return RawResponse(stale.status, stale.body, stale.requestId)
+        }
+        if (fresh.status in 200..299) { cache.save(path, fresh); return fresh }
+        val stale = if (policy.staleIfError && ErrorKind.ofStatus(fresh.status) == ErrorKind.Server) cache.lookup(path, policy, allowStale = true) else null
+        if (stale != null) { AppLog.w("cache", "GET $path -> ${fresh.status} - serving stale copy"); return RawResponse(stale.status, stale.body, stale.requestId) }
+
+        return fresh
+    }
+
+    private suspend fun network(method: String, path: String, body: JsonObject?, auth: Boolean, timeoutMs: Long?): RawResponse {
         val useAuth = auth && !contract.isAuthPath(path)
         if (useAuth) refreshIfExpiring()
         val used = if (useAuth) tokens.access() else null
@@ -94,6 +122,7 @@ class AuthedClient(
             // best-effort
         } finally {
             tokens.clear()
+            cache.clear() // dữ liệu của người vừa đăng xuất không được còn trong máy
         }
     }
 
@@ -130,7 +159,7 @@ class AuthedClient(
         val pair = contract.parseTokens(r.status, r.body)
         when {
             pair != null -> { tokens.save(pair.access, pair.refresh); AppLog.i("auth", "session refreshed"); true }
-            contract.isRefreshDead(r.status, r.body) -> { AppLog.w("auth", "refresh token is dead (HTTP ${r.status}) - sign-in required"); tokens.clear(); _sessionExpired.tryEmit(Unit); false }
+            contract.isRefreshDead(r.status, r.body) -> { AppLog.w("auth", "refresh token is dead (HTTP ${r.status}) - sign-in required"); tokens.clear(); cache.clear(); _sessionExpired.tryEmit(Unit); false }
             else -> false
         }
     }
