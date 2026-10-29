@@ -37,3 +37,19 @@ class ApiError(
     /** Đáng thử lại tự động (lỗi tạm): mạng, timeout, 429, 5xx. */
     val isRetryable get() = kind == ErrorKind.Network || kind == ErrorKind.Timeout || kind == ErrorKind.RateLimited || kind == ErrorKind.Server
 }
+
+/**
+ * Ghi MỘT dòng log cho lỗi sắp ném cho người gọi — một chỗ duy nhất nên mọi lỗi đều có dấu vết, kèm `requestId` để tra bên máy chủ.
+ * Mức: lỗi do ta/máy chủ/mạng (Network, Timeout, Server, Parse) là Warn/Error; lỗi 4xx kỳ vọng (404, 422, 401…) chỉ là Info để không
+ * làm rối log. Không ghi body (có thể chứa dữ liệu người dùng); lời nhắn của server đi qua [Redactor] như mọi dòng log.
+ */
+internal fun ApiError.logFailure(method: String, path: String): ApiError {
+    val level = when (kind) {
+        ErrorKind.Parse -> LogLevel.Error
+        ErrorKind.Network, ErrorKind.Timeout, ErrorKind.Server -> LogLevel.Warn
+        else -> LogLevel.Info
+    }
+    val cause = cause?.let { " cause=${it::class.simpleName}" }.orEmpty()
+    AppLog.log(level, "http", "$method $path FAILED kind=$kind status=$status" + (requestId?.let { " req=$it" } ?: "") + " msg=\"$message\"$cause", null)
+    return this
+}

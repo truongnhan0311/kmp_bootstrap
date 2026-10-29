@@ -39,8 +39,8 @@ suspend inline fun <reified T, reified B> AuthedClient.patch(path: String, body:
 suspend fun AuthedClient.sendNoContent(method: String, path: String, body: JsonObject? = null, auth: Boolean = true) { requestUnit(method, path, body, auth) }
 
 fun <B> AuthedClient.encodeBody(body: B, serializer: KSerializer<B>): JsonObject {
-    val element = try { json.encodeToJsonElement(serializer, body) } catch (e: Exception) { throw ApiError(0, Strings.text(Msg.BodyEncodeFailed), null, ErrorKind.Other, e) }
-    return element as? JsonObject ?: throw ApiError(0, Strings.text(Msg.BodyNotObject), null, ErrorKind.Other)
+    val element = try { json.encodeToJsonElement(serializer, body) } catch (e: Exception) { throw ApiError(0, Strings.text(Msg.BodyEncodeFailed), null, ErrorKind.Other, e).logFailure("-", "encode") }
+    return element as? JsonObject ?: throw ApiError(0, Strings.text(Msg.BodyNotObject), null, ErrorKind.Other).logFailure("-", "encode")
 }
 
 /** Như [get] nhưng 404 trả null — cho dữ liệu "có thể chưa có" (không phải sự cố). Lỗi khác vẫn ném. */
@@ -50,18 +50,18 @@ suspend inline fun <reified T> AuthedClient.getOrNull(path: String, auth: Boolea
 /** Thực thi và giải mã; dùng bởi các hàm trên (public để inline gọi được). */
 suspend fun <T> AuthedClient.request(method: String, path: String, body: JsonObject?, auth: Boolean, serializer: KSerializer<T>): T {
     val r = raw(method, path, body, auth)
-    throwIfFailed(r)
+    throwIfFailed(r, method, path)
     return try {
         json.decodeFromString(serializer, r.body)
     } catch (e: Exception) {
-        throw ApiError(r.status, Strings.text(Msg.Parse), r.requestId, ErrorKind.Parse, e)
+        throw ApiError(r.status, Strings.text(Msg.Parse), r.requestId, ErrorKind.Parse, e).logFailure(method, path)
     }
 }
 
 suspend fun AuthedClient.requestUnit(method: String, path: String, body: JsonObject?, auth: Boolean) {
-    throwIfFailed(raw(method, path, body, auth))
+    throwIfFailed(raw(method, path, body, auth), method, path)
 }
 
-private fun AuthedClient.throwIfFailed(r: RawResponse) {
-    if (r.status !in 200..299) throw ApiError(r.status, errorMessageOf(r), r.requestId)
+private fun AuthedClient.throwIfFailed(r: RawResponse, method: String, path: String) {
+    if (r.status !in 200..299) throw ApiError(r.status, errorMessageOf(r), r.requestId).logFailure(method, path)
 }

@@ -59,7 +59,7 @@ class HttpTransport(
     suspend fun execute(method: String, path: String, body: JsonObject? = null, bearer: String? = null, timeoutMs: Long? = null): RawResponse {
         var attempt = 0
         while (true) {
-            val outcome = runCatchingNetwork { once(method, path, body, bearer, timeoutMs) }
+            val outcome = runCatchingNetwork(method, path) { once(method, path, body, bearer, timeoutMs) }
             val retry = method == "GET" && attempt < getRetries && (outcome.isFailure && (outcome.exceptionOrNull() as? ApiError)?.isRetryable == true ||
                 outcome.getOrNull()?.status.let { it == 429 || (it != null && it in 500..599) })
             if (!retry) return outcome.getOrThrow()
@@ -69,14 +69,14 @@ class HttpTransport(
         }
     }
 
-    private suspend fun <T> runCatchingNetwork(block: suspend () -> T): Result<T> = try {
+    private suspend fun <T> runCatchingNetwork(method: String, path: String, block: suspend () -> T): Result<T> = try {
         Result.success(block())
     } catch (e: CancellationException) {
         throw e
     } catch (e: ApiError) {
         Result.failure(e)
     } catch (e: Throwable) {
-        Result.failure(if (isTimeoutError(e)) ApiError(0, Strings.text(Msg.Timeout), kind = ErrorKind.Timeout, cause = e) else ApiError(0, Strings.text(Msg.NetworkUnreachable), kind = ErrorKind.Network, cause = e))
+        Result.failure((if (isTimeoutError(e)) ApiError(0, Strings.text(Msg.Timeout), kind = ErrorKind.Timeout, cause = e) else ApiError(0, Strings.text(Msg.NetworkUnreachable), kind = ErrorKind.Network, cause = e)).logFailure(method, path))
     }
 
     private suspend fun once(method: String, path: String, body: JsonObject?, bearer: String?, timeoutMs: Long?): RawResponse {

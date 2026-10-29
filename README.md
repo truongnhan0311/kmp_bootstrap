@@ -82,7 +82,7 @@ docs/push.md                           nối FCM cho Android + iOS (kèm mẫu A
 ./gradlew :kit:build                              # máy có Android Studio/Xcode: đủ Android + iOS
 ```
 
-Đã kiểm trên JVM: 53 test (MockEngine, FakeFileSystem, file tạm) — làm mới single-flight, request/lỗi/JSON/404/timeout/thử lại GET, body @Serializable + JWT,
+Đã kiểm trên JVM: 57 test (MockEngine, FakeFileSystem, file tạm) — làm mới single-flight, request/lỗi/JSON/404/timeout/thử lại GET, body @Serializable + JWT,
 lưu trữ bền qua lần mở lại, log xoay vòng + che bí mật, mã hoá (sai khoá/bị sửa đều thất bại, SHA-256 đúng vector chuẩn), push, và bộ sinh theme (oklch→hex đúng).
 
 **Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, Swift), build Android/iOS,

@@ -122,3 +122,46 @@ class TypedBodyTest {
         assertEquals("saved", saved.name); assertEquals(1, refreshes); assertEquals(1, posts, "ghi đúng một lần sau khi làm mới")
     }
 }
+
+class FailureLoggingTest {
+    private val json = headersOf(HttpHeaders.ContentType, "application/json")
+    private val lines = mutableListOf<Pair<LogLevel, String>>()
+    @kotlin.test.BeforeTest fun capture() { AppLog.install(object : LogSink { override fun write(level: LogLevel, tag: String, message: String, error: Throwable?) { lines += level to message } }) }
+    @kotlin.test.AfterTest fun release() { AppLog.install() }
+
+    private fun client(handler: suspend io.ktor.client.engine.mock.MockRequestHandleScope.(io.ktor.client.request.HttpRequestData) -> io.ktor.client.request.HttpResponseData) =
+        AuthedClient(HttpTransport("https://x.test", "app", MockEngine(handler), getRetries = 0), MemoryTokenStore("a", "r"), PlainJsonContract(), refreshMarginSeconds = 0)
+
+    @Test fun serverErrorIsLoggedAsWarnWithRequestIdAndKind() = runTest {
+        val c = client { respond("""{"message":"boom"}""", HttpStatusCode.InternalServerError, headersOf(HttpHeaders.ContentType to listOf("application/json"), "X-Request-Id" to listOf("req-42"))) }
+        assertFailsWith<ApiError> { c.get<Item>("/items") }
+        val failed = lines.single { it.second.contains("FAILED") }
+        assertEquals(LogLevel.Warn, failed.first)
+        listOf("GET /items", "kind=Server", "status=500", "req=req-42", "boom").forEach { assertTrue(failed.second.contains(it), "$it ∈ ${failed.second}") }
+    }
+
+    @Test fun expectedClientErrorsAreInfoNotNoise() = runTest {
+        val c = client { respond("{}", HttpStatusCode.NotFound, json) }
+        assertNull(c.getOrNull<Item>("/items/9"))
+        assertEquals(LogLevel.Info, lines.single { it.second.contains("FAILED") }.first)
+    }
+
+    @Test fun networkTimeoutAndParseFailuresLeaveATrace() = runTest {
+        val down = client { throw RuntimeException("Unable to resolve host x.test") }
+        assertFailsWith<ApiError> { down.get<Item>("/a") }
+        val slow = client { throw io.ktor.client.plugins.HttpRequestTimeoutException("https://x.test/b", 1) }
+        assertFailsWith<ApiError> { slow.get<Item>("/b") }
+        val bad = client { respond("<html>", HttpStatusCode.OK, json) }
+        assertFailsWith<ApiError> { bad.get<Item>("/c") }
+        val text = lines.map { it.second }.filter { it.contains("FAILED") }
+        assertTrue(text.any { it.contains("kind=Network") && it.contains("/a") && it.contains("cause=") })
+        assertTrue(text.any { it.contains("kind=Timeout") && it.contains("/b") })
+        assertTrue(text.any { it.contains("kind=Parse") && it.contains("/c") })
+        assertEquals(LogLevel.Error, lines.first { it.second.contains("kind=Parse") }.first)
+    }
+
+    @Test fun oneFailureIsLoggedExactlyOnce() = runTest {
+        assertFailsWith<ApiError> { client { respond("{}", HttpStatusCode.Forbidden, json) }.post<Item>("/x") }
+        assertEquals(1, lines.count { it.second.contains("FAILED") })
+    }
+}
