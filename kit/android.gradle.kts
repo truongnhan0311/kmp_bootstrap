@@ -1,5 +1,5 @@
 extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
-    namespace = "vn.truongnhan.appkit"
+    namespace = "kmp.bootstrap.appkit"
     compileSdk = 36
     defaultConfig { minSdk = 26 }
     compileOptions {

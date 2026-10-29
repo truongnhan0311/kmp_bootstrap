@@ -46,7 +46,7 @@ Backend thứ ba: cài `AuthContract` (6 hàm nhỏ) — cơ chế single-flight
 ## Cấu trúc
 
 ```
-kit/src/commonMain/kotlin/vn/truongnhan/appkit/
+kit/src/commonMain/kotlin/kmp/bootstrap/appkit/
   AuthedClient.kt   cơ chế: Bearer, làm mới, thử lại, failover, sự kiện phiên
   AuthContract.kt   khác biệt giữa các backend (Plain / Envelope)
   Failover.kt       tên miền dự phòng

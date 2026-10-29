@@ -128,7 +128,7 @@ const kt = `// SINH TỰ ĐỘNG bởi tools/shadcn-theme.mjs từ ${file.split(
 package ${pkg}
 
 import androidx.compose.ui.graphics.Color
-import vn.truongnhan.appkit.ui.AppColors
+import kmp.bootstrap.appkit.ui.AppColors
 
 ${emit(name + 'LightColors', false, light)}
 
