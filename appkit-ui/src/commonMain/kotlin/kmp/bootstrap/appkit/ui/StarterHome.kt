@@ -1,5 +1,6 @@
 package kmp.bootstrap.appkit.ui
 
+import kmp.bootstrap.appkit.ThemeMode
 import androidx.compose.runtime.Composable
 import kmp.bootstrap.appkit.SvgIcon
 import androidx.compose.runtime.getValue

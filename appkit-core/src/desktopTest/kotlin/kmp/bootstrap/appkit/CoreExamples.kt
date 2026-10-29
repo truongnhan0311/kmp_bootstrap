@@ -12,7 +12,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * VÍ DỤ CHẠY ĐƯỢC của appkit-core. Các đoạn giữa `// region` và `// endregion` được `tools/sync-snippets.mjs` chép nguyên văn vào docs/core.md,
  * nên tài liệu không bao giờ lệch khỏi code đã biên dịch và đã chạy.
  */
-@Serializable data class AppSettings(val theme: String, val fontSize: Int)
+@Serializable data class UiSettings(val theme: String, val fontSize: Int)
 
 class CoreExamples {
     @Test fun language() {
@@ -33,11 +33,11 @@ class CoreExamples {
         val storage = AppStorage("my-app")                   // Android: gọi AppKitAndroid.init(context) một lần trước đó
         storage.prefs.putBool("dark", true)                  // lựa chọn thường (giao diện, ngôn ngữ…)
         storage.prefs.putInt("launches", 3)
-        storage.prefs.putJson("settings", AppSettings.serializer(), AppSettings("dark", 14))
-        val settings = storage.prefs.getJson("settings", AppSettings.serializer())   // null nếu chưa có hoặc dữ liệu cũ hỏng
+        storage.prefs.putJson("settings", UiSettings.serializer(), UiSettings("dark", 14))
+        val settings = storage.prefs.getJson("settings", UiSettings.serializer())   // null nếu chưa có hoặc dữ liệu cũ hỏng
         storage.tokens.save(access = "jwt", refresh = "refresh")                  // token nằm ở nơi mã hoá của máy (Keystore/Keychain)
         // endregion
-        assertEquals(AppSettings("dark", 14), settings); assertEquals("jwt", AppStorage("my-app").tokens.access()); System.clearProperty("appkit.storage.dir")
+        assertEquals(UiSettings("dark", 14), settings); assertEquals("jwt", AppStorage("my-app").tokens.access()); System.clearProperty("appkit.storage.dir")
     }
 
     @Test fun crypto() = runBlocking {

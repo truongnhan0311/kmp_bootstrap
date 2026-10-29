@@ -1,5 +1,6 @@
 package kmp.bootstrap.appkit.ui
 
+import kmp.bootstrap.appkit.ThemeMode
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier

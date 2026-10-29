@@ -1,5 +1,6 @@
 package kmp.bootstrap.appkit.ui
 
+import kmp.bootstrap.appkit.ThemeMode
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.unit.Density

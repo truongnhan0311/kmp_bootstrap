@@ -11,6 +11,7 @@ import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -67,6 +68,17 @@ class HttpTransport(
             AppLog.w("http", "$method $path retry #$attempt")
             delay(backoffMs * attempt)
         }
+    }
+
+    /** Tải thân phản hồi dạng byte (ảnh, tệp) — cùng failover và phân loại lỗi như [execute]; không thử lại. Trả (mã HTTP, byte). */
+    suspend fun executeBytes(path: String, bearer: String? = null): Pair<Int, ByteArray> {
+        val outcome = runCatchingNetwork("GET", path) {
+            val base = failover.current()
+            val response = http.request { url(base + path); if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer") }
+            failover.markWorking(base)
+            response.status.value to response.readRawBytes()
+        }
+        return outcome.getOrThrow()
     }
 
     private suspend fun <T> runCatchingNetwork(method: String, path: String, block: suspend () -> T): Result<T> = try {

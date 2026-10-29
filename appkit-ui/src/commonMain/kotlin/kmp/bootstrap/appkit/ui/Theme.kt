@@ -13,6 +13,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import kmp.bootstrap.appkit.ThemeMode
 
 /**
  * Bộ màu theo ĐÚNG tên token của shadcn (`--background`, `--primary`, `--muted-foreground`…) để sinh được từ CSS của web
@@ -63,9 +64,6 @@ object A {
     val colors: AppColors @Composable get() = LocalAppColors.current
     val type: AppTypography @Composable get() = LocalAppTypography.current
 }
-
-/** Lựa chọn Sáng/Tối/Theo máy → bộ màu. */
-enum class ThemeMode { System, Light, Dark }
 
 @Composable
 fun AppTheme(

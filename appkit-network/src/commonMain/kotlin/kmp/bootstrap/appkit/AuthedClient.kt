@@ -109,8 +109,24 @@ class AuthedClient(
         return decode(r.body)
     }
 
+    /**
+     * Tải byte (ảnh đại diện, tệp) — gắn JWT, 401 thì làm mới phiên rồi tải lại một lần. Lỗi HTTP ném [ApiError] (404 → `isNotFound`).
+     * Dùng cho `AsyncAvatar` / `AsyncImage` ở appkit-ui.
+     */
+    suspend fun getBytes(path: String, auth: Boolean = true): ByteArray {
+        val used = if (auth) tokens.access() else null
+        var (status, bytes) = transport.executeBytes(path, used)
+        if (auth && status == 401 && refreshSession(used)) { val retried = transport.executeBytes(path, tokens.access()); status = retried.first; bytes = retried.second }
+        if (status !in 200..299) throw ApiError(status, ErrorKind.ofStatus(status).defaultMessage()).logFailure("GET", path)
+
+        return bytes
+    }
+
     /** Câu báo lỗi đọc được từ phản hồi lỗi, theo hợp đồng của backend. */
     fun errorMessageOf(r: RawResponse): String = contract.errorMessage(r.status, r.body) ?: ErrorKind.ofStatus(r.status).defaultMessage()
+
+    /** Chỉ xoá token và cache cục bộ (không gọi máy chủ) — khi phiên đã chết thật. */
+    suspend fun logoutLocal() { tokens.clear(); cache.clear() }
 
     /** Thu hồi phiên trên máy chủ rồi xoá token cục bộ. Lỗi mạng không chặn việc đăng xuất ở máy. */
     suspend fun logout(all: Boolean = false) {
