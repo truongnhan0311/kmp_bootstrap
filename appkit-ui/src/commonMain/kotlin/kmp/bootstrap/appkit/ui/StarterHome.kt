@@ -11,7 +11,8 @@ import androidx.compose.runtime.setValue
  * APP MẪU 5 TAB (dữ liệu giả) — chép file này vào app rồi thay dữ liệu thật. Ghép từ khung màn (AppScaffold/AppHeader/Page/TabBar),
  * icon (AppIcon) và các block (Hero, StatGrid, FeatureGrid, List, Cta). Không có logic, không gọi mạng: chỉ để thấy bố cục và làm điểm xuất phát.
  *
- * Thêm một tab = thêm một giá trị vào [StarterTab], một dòng vào [StarterTab.items] và một nhánh `when` ở [StarterApp].
+ * Thêm một tab = thêm một giá trị vào [StarterTab] và một nhánh `when` ở [StarterApp]; thêm trang con = thêm một [StarterRoute].
+ * Các trang còn lại (Đăng nhập, Đăng ký, Chi tiết, Lịch, Xu hướng) ở StarterPages.kt.
  */
 enum class StarterTab(val label: String, val icon: SvgIcon) {
     Home("Trang chủ", AppIcons.Home), Activities("Hoạt động", AppIcons.List), Search("Tìm kiếm", AppIcons.Search),
@@ -20,33 +21,62 @@ enum class StarterTab(val label: String, val icon: SvgIcon) {
     companion object { val items = entries.map { TabItem(it, it.label, it.icon) } }
 }
 
-@Composable
-fun StarterHome(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.System, initial: StarterTab = StarterTab.Home) = StarterApp(dark, light, mode, initial)
+/** Các "màn" của app mẫu. Auth (Login/Register) toàn màn hình; Main là 5 tab; còn lại là trang con có nút quay lại. */
+sealed interface StarterRoute {
+    data object Login : StarterRoute
+    data object Register : StarterRoute
+    data class Main(val tab: StarterTab = StarterTab.Home) : StarterRoute
+    data class Detail(val title: String) : StarterRoute
+    data object Calendar : StarterRoute
+    data object Trends : StarterRoute
+}
 
 @Composable
-fun StarterApp(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.System, initial: StarterTab = StarterTab.Home) {
+fun StarterHome(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.System, initial: StarterTab = StarterTab.Home) =
+    StarterApp(dark, light, mode, StarterRoute.Main(initial))
+
+@Composable
+fun StarterApp(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.System, initial: StarterRoute = StarterRoute.Login) {
     AppTheme(light = light, dark = dark, mode = mode) {
-        var tab by remember { mutableStateOf(initial) }
-        AppScaffold(
-            topBar = {
-                AppHeader(if (tab == StarterTab.Home) "My App" else tab.label, actions = {
-                    AppIcon(AppIcons.Bell, size = androidx.compose.ui.unit.Dp(22f), color = A.colors.mutedForeground)
-                    AppButton("Đăng xuất", onClick = {}, variant = ButtonVariant.Outline, size = ButtonSize.Sm)
-                })
-            },
-            bottomBar = { TabBar(StarterTab.items, tab) { tab = it } },
-        ) {
-            when (tab) {
-                StarterTab.Home -> StarterHomeScreen { tab = it }
-                StarterTab.Activities -> StarterActivitiesScreen()
-                StarterTab.Search -> StarterSearchScreen()
-                StarterTab.Profile -> StarterProfileScreen()
-                StarterTab.Settings -> StarterSettingsScreen()
+        var route by remember { mutableStateOf(initial) }
+        var back by remember { mutableStateOf<StarterRoute>(StarterRoute.Main()) }   // trang con quay lại đâu
+        fun open(r: StarterRoute) { if (route is StarterRoute.Main) back = route; route = r }
+        when (val r = route) {
+            StarterRoute.Login -> AppScaffold { StarterLoginPage(onLogin = { route = StarterRoute.Main() }, onRegister = { route = StarterRoute.Register }) }
+            StarterRoute.Register -> AppScaffold { StarterRegisterPage(onDone = { route = StarterRoute.Main() }, onBack = { route = StarterRoute.Login }) }
+            else -> {
+                val tab = (r as? StarterRoute.Main)?.tab ?: (back as? StarterRoute.Main)?.tab ?: StarterTab.Home
+                val title = when (r) {
+                    is StarterRoute.Main -> if (r.tab == StarterTab.Home) "My App" else r.tab.label
+                    is StarterRoute.Detail -> "Chi tiết buổi tập"; StarterRoute.Calendar -> "Lịch"; StarterRoute.Trends -> "Xu hướng"; else -> ""
+                }
+                AppScaffold(
+                    topBar = {
+                        AppHeader(title, onBack = if (r is StarterRoute.Main) null else ({ route = back }), actions = {
+                            AppIcon(AppIcons.Bell, size = androidx.compose.ui.unit.Dp(22f), color = A.colors.mutedForeground)
+                            if (r is StarterRoute.Main) AppButton("Đăng xuất", onClick = { route = StarterRoute.Login }, variant = ButtonVariant.Outline, size = ButtonSize.Sm)
+                        })
+                    },
+                    bottomBar = { TabBar(StarterTab.items, tab) { route = StarterRoute.Main(it) } },
+                ) {
+                    when (r) {
+                        is StarterRoute.Main -> when (r.tab) {
+                            StarterTab.Home -> StarterHomeScreen(::open) { route = StarterRoute.Main(it) }
+                            StarterTab.Activities -> StarterActivitiesScreen { open(StarterRoute.Detail(it)) }
+                            StarterTab.Search -> StarterSearchScreen { open(StarterRoute.Detail(it)) }
+                            StarterTab.Profile -> StarterProfileScreen()
+                            StarterTab.Settings -> StarterSettingsScreen()
+                        }
+                        is StarterRoute.Detail -> StarterDetailPage(r.title)
+                        StarterRoute.Calendar -> StarterCalendarPage { open(StarterRoute.Detail(it)) }
+                        StarterRoute.Trends -> StarterTrendsPage()
+                        else -> Unit
+                    }
+                }
             }
         }
     }
 }
-
 
 private val recent = listOf(
     ListRow("Đạp buổi sáng", "29/10 · 1h13 · 32 km", trailing = "81 TSS", icon = AppIcons.Calendar),
@@ -54,32 +84,35 @@ private val recent = listOf(
     ListRow("Hồi phục", "26/10 · 45 phút · 15 km", trailing = "28 TSS", icon = AppIcons.Calendar),
 )
 
+/** Gắn hành động mở chi tiết vào các hàng. */
+private fun List<ListRow>.opening(onOpen: (String) -> Unit) = map { r -> r.copy(onClick = { onOpen(r.title) }, chevron = true) }
+
 @Composable
-fun StarterHomeScreen(goTo: (StarterTab) -> Unit = {}) = Page {
+fun StarterHomeScreen(open: (StarterRoute) -> Unit = {}, goTab: (StarterTab) -> Unit = {}) = Page {
     HeroBlock("Chào buổi sáng", "Hôm nay bạn muốn làm gì?", action = { AppButton("Bắt đầu", onClick = {}, icon = AppIcons.Plus) })
     StatGridBlock(title = "Tuần này", items = listOf(
         StatItem("Buổi tập", "4"), StatItem("Tổng thời gian", "5h20"),
         StatItem("Thể lực", "43", A.colors.primary), StatItem("Mệt", "61", A.colors.destructive),
     ))
     FeatureGridBlock(title = "Lối tắt", items = listOf(
-        Feature("Lịch", "Xem các buổi theo ngày", icon = AppIcons.Calendar, onClick = { goTo(StarterTab.Activities) }),
-        Feature("Xu hướng", "Biểu đồ 6 tuần", icon = AppIcons.Chart),
-        Feature("Tìm kiếm", "Theo tên hoặc thẻ", icon = AppIcons.Search, onClick = { goTo(StarterTab.Search) }),
+        Feature("Lịch", "Xem các buổi theo ngày", icon = AppIcons.Calendar, onClick = { open(StarterRoute.Calendar) }),
+        Feature("Xu hướng", "Biểu đồ 6 tuần", icon = AppIcons.Chart, onClick = { open(StarterRoute.Trends) }),
+        Feature("Tìm kiếm", "Theo tên hoặc thẻ", icon = AppIcons.Search, onClick = { goTab(StarterTab.Search) }),
         Feature("Nhắc giờ", "Đặt lịch tập", icon = AppIcons.Bell),
     ))
-    ListBlock("Gần đây", hint = "mới nhất trước", items = recent)
+    ListBlock("Gần đây", hint = "mới nhất trước", items = recent.opening { open(StarterRoute.Detail(it)) })
     CtaBlock("Nối nguồn dữ liệu", "Buổi tập sẽ tự về, không cần nhập tay.", actionLabel = "Nối ngay", onAction = {})
 }
 
 @Composable
-fun StarterActivitiesScreen() = Page {
+fun StarterActivitiesScreen(onOpen: (String) -> Unit = {}) = Page {
     ScreenHeader("Hoạt động của tôi", "Các buổi đã đạp, mới nhất trước.")
-    ListBlock("Tháng 10", hint = "12 buổi", items = recent + recent.map { it.copy(title = it.title + " (2)") })
+    ListBlock("Tháng 10", hint = "12 buổi", items = (recent + recent.map { it.copy(title = it.title + " (2)") }).opening(onOpen))
     ListBlock("Tháng 9", items = emptyList(), empty = "Chưa có buổi nào")
 }
 
 @Composable
-fun StarterSearchScreen() = Page {
+fun StarterSearchScreen(onOpen: (String) -> Unit = {}) = Page {
     var query by remember { mutableStateOf("") }
     ScreenHeader("Tìm kiếm", "Theo tên hoặc thẻ của buổi tập.")
     AppField(label = "Từ khoá", value = query, onChange = { query = it }, placeholder = "ví dụ: đạp nhóm")
@@ -87,7 +120,7 @@ fun StarterSearchScreen() = Page {
         Section("Gần đây") { BadgesBlock(listOf("đạp nhóm", "hồi phục", "Thủ Đức", "interval")) }
     } else {
         val hits = recent.filter { it.title.contains(query, ignoreCase = true) }
-        if (hits.isEmpty()) EmptyState("Không thấy “$query”", message = "Thử từ khoá khác hoặc bớt chữ.") else ListBlock("Kết quả", hint = "${hits.size} buổi", items = hits)
+        if (hits.isEmpty()) EmptyState("Không thấy “$query”", message = "Thử từ khoá khác hoặc bớt chữ.") else ListBlock("Kết quả", hint = "${hits.size} buổi", items = hits.opening(onOpen))
     }
 }
 

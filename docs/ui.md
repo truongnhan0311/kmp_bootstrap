@@ -127,7 +127,21 @@ fun IconsDemo() {
 ## App mẫu 5 tab (điểm xuất phát)
 
 `StarterApp` ghép khung màn + icon + các block với dữ liệu giả, năm tab: **Trang chủ, Hoạt động, Tìm kiếm, Hồ sơ, Cài đặt** (mỗi tab một màn mẫu).
-**Chép file `StarterHome.kt` vào app rồi thay dữ liệu thật.** Không có logic, không gọi mạng. Thêm tab = thêm giá trị vào `StarterTab`, một nhánh `when` ở `StarterApp`.
+**Chép `StarterHome.kt` (khung + điều hướng) và `StarterPages.kt` (các trang) vào app rồi thay dữ liệu thật.** Không có logic, không gọi mạng.
+Thêm tab = thêm giá trị vào `StarterTab` + một nhánh `when` ở `StarterApp`; thêm trang con = thêm một `StarterRoute`.
+
+| Trang | Hàm | Ghép từ |
+|---|---|---|
+| Đăng nhập, Đăng ký | `StarterLoginPage`, `StarterRegisterPage` | `HeroBlock`, `AppField`, `AppAlert`, `AppButton` (toàn màn hình, không có header/tab) |
+| Trang chủ | `StarterHomeScreen` | `HeroBlock`, `StatGridBlock`, `FeatureGridBlock`, `ListBlock`, `CtaBlock` |
+| Hoạt động | `StarterActivitiesScreen` | `ScreenHeader`, `ListBlock` (có trạng thái rỗng) |
+| Tìm kiếm | `StarterSearchScreen` | `AppField`, `BadgesBlock`, `ListBlock`, `EmptyState` |
+| Chi tiết | `StarterDetailPage` | `HeroBlock`, `StatGridBlock`, `BarChart`, `ListBlock`, ô ghi chú |
+| Lịch | `StarterCalendarPage` | `Grid(columns = 7)` ô ngày có chấm mức tải, `ListBlock` của ngày chọn |
+| Xu hướng | `StarterTrendsPage` | `Segmented`, `LineChart`, `StatGridBlock`, `CtaBlock` |
+| Hồ sơ, Cài đặt | `StarterProfileScreen`, `StarterSettingsScreen` | `Avatar`, `Segmented`, `ListBlock` có mũi tên |
+
+Biểu đồ (`BarChart`, `LineChart` trong `Charts.kt`) chỉ **vẽ** số đã tính sẵn; muốn zoom/dò giá trị thì tự viết thêm trong app.
 
 <!-- snippet: ui-scaffold -->
 ```kotlin
