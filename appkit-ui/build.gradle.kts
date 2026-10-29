@@ -37,6 +37,9 @@ kotlin {
             implementation(compose.ui)
         }
         commonTest.dependencies { implementation(kotlin("test")) }
+        if (!desktopOnly) {
+            val androidMain by getting { dependencies { implementation(libs.androidx.activity.compose) } }
+        }
         val desktopMain by getting { dependencies { implementation(compose.desktop.currentOs) } }
     }
 }

@@ -35,8 +35,8 @@ val fallback = Language.text(Msg.NotFound)           // fr chưa có câu này �
 val storage = AppStorage("my-app")                   // Android: gọi AppKitAndroid.init(context) một lần trước đó
 storage.prefs.putBool("dark", true)                  // lựa chọn thường (giao diện, ngôn ngữ…)
 storage.prefs.putInt("launches", 3)
-storage.prefs.putJson("settings", AppSettings.serializer(), AppSettings("dark", 14))
-val settings = storage.prefs.getJson("settings", AppSettings.serializer())   // null nếu chưa có hoặc dữ liệu cũ hỏng
+storage.prefs.putJson("settings", UiSettings.serializer(), UiSettings("dark", 14))
+val settings = storage.prefs.getJson("settings", UiSettings.serializer())   // null nếu chưa có hoặc dữ liệu cũ hỏng
 storage.tokens.save(access = "jwt", refresh = "refresh")                  // token nằm ở nơi mã hoá của máy (Keystore/Keychain)
 ```
 <!-- /snippet -->

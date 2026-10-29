@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kmp.bootstrap.appkit.Navigator
 
 /** VÍ DỤ của appkit-ui — chỉ BIÊN DỊCH (không chạy được ở môi trường dựng); xem ghi chú ở CoreExamples. */
 // region: ui-theme
@@ -78,5 +79,36 @@ fun IconsDemo() {
     }
     TabBar(listOf(TabItem("home", "Trang chủ", AppIcons.Home), TabItem("me", "Hồ sơ", AppIcons.User)), selected = "home") { }   // tab có icon
     AppIcon("<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\"><path d=\"M5 12h14\"/></svg>")           // hoặc SVG bất kỳ dạng chuỗi
+}
+// endregion
+
+// region: ui-navhost
+sealed interface AppRoute { data object Home : AppRoute; data class Detail(val id: String) : AppRoute }
+
+@Composable
+fun AppNavigation(nav: Navigator<AppRoute>) {
+    NavHost(nav) { route ->                              // vẽ route hiện tại; nút lùi Android tự lùi ngăn xếp
+        when (route) {
+            AppRoute.Home -> Page { ListBlock("Buổi tập", items = listOf(ListRow("Đạp sáng", onClick = { nav.push(AppRoute.Detail("1")) }))) }
+            is AppRoute.Detail -> AppScaffold(topBar = { AppHeader("Chi tiết", onBack = { nav.back() }) }) { Page { Txt("Buổi ${route.id}") } }
+        }
+    }
+}
+// endregion
+
+// region: ui-avatar
+@Composable
+fun ProfileHeader(fetch: suspend (String) -> ByteArray?, name: String, avatarUrl: String?) {
+    // fetch là cách TẢI byte; với appkit-network: ProfileHeader({ client.getBytes(it) }, …) — tự gắn JWT, tự làm mới phiên
+    AsyncAvatar(name, avatarUrl, fetch = fetch, size = 56)      // chữ cái đầu lúc chờ/lỗi; ảnh đã giải mã được nhớ theo URL
+}
+// endregion
+
+// region: ui-theme-settings
+@Composable
+fun ThemedApp(light: AppColors, dark: AppColors, settings: kmp.bootstrap.appkit.AppSettings) {
+    AppTheme(light = light, dark = dark, settings = settings) {      // settings.setTheme(ThemeMode.Dark) ở đâu cũng được → UI đổi ngay và được nhớ
+        Page { Segmented(listOf(ThemeMode.System to "Theo máy", ThemeMode.Light to "Sáng", ThemeMode.Dark to "Tối"), settings.theme.value, { settings.setTheme(it) }) }
+    }
 }
 // endregion

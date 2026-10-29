@@ -3,6 +3,11 @@
 Phiên bản theo `0.x`: API còn có thể đổi, mỗi thay đổi phá API được ghi ở đây.
 
 ## 0.1.0
+- `appkit-core`: `Navigator` (ngăn xếp điều hướng), `DeepLinks` (link → route), `AppSettings` (giao diện + ngôn ngữ được nhớ, quy tắc lựa chọn gần nhất thắng), `ThemeMode` (chuyển từ `appkit-ui`).
+- `appkit-network`: `Session<U>` (Loading/SignedOut/SignedIn, khôi phục khi mất mạng, tự về đăng nhập khi hết phiên), `AuthedClient.getBytes`, `logoutLocal`.
+- `appkit-platform` (mới): `PlatformServices` (openUrl, copyToClipboard, shareText, pickImage, timezoneId), `FakePlatformServices`, `openLink`, `shareOrCopy`.
+- `appkit-ui`: `NavHost` + `BackHandler`, `AsyncAvatar` + `decodeImage` + `ImageCache`, `AppTheme(…, settings)`.
+- `tools/new-app.mjs`: sinh dự án app mới (Android + iOS + desktop) nối sẵn kit.
 - `appkit-core`: Language (en/vi/zh/es), AppLog (xoay vòng + che bí mật), AppStorage (prefs + két an toàn), AppCrypto (AES-256-GCM), TtlCache, AppTimers/Debouncer, Jwt.
 - `appkit-network`: HttpTransport (failover, thử lại GET, phân loại lỗi), AuthedClient (JWT, làm mới phiên single-flight), get/post/put/patch/delete + body @Serializable, ApiError có kind, cache GET, Endpoints, AppKit.start().
 - `appkit-push`: PushManager (Taper/qt-depot), PushNavigation, FCM Android + iOS (chưa kiểm trên thiết bị).

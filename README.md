@@ -5,13 +5,16 @@ Bộ khung dùng chung cho app Kotlin Multiplatform (Android + iOS): **đủ đ�
 
 Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các module khác không bị kéo vào.
 
+> **Bắt đầu một app mới:** `node tools/new-app.mjs --name my-app --id com.acme.myapp --out ../my-app --modules network,push,platform,ui` — xem [docs/new-app.md](docs/new-app.md).
+
 ## Chọn module
 
 | Module | Có gì | Kéo theo |
 |---|---|---|
-| `appkit-core` | `Language` (chữ theo ngôn ngữ), `SvgParser` (đọc SVG), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
-| `appkit-network` | `AuthedClient` (JWT tự gắn + tự làm mới phiên), `HttpTransport` (failover, timeout, thử lại GET), `get/post/put/patch/delete`, `ApiError` có phân loại, cache GET, `Endpoints` (một chỗ khai báo đường dẫn), `AppKit.start()` | core + Ktor |
+| `appkit-core` | `Language` (chữ theo ngôn ngữ), `Navigator` + `DeepLinks` (điều hướng), `AppSettings` (giao diện + ngôn ngữ được nhớ), `SvgParser` (đọc SVG), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
+| `appkit-network` | `Session` (đang kiểm tra/đăng nhập/đăng xuất), `AuthedClient` (JWT tự gắn + tự làm mới phiên), `HttpTransport` (failover, timeout, thử lại GET), `get/post/put/patch/delete`, `ApiError` có phân loại, cache GET, `Endpoints` (một chỗ khai báo đường dẫn), `AppKit.start()` | core + Ktor |
 | `appkit-push` | thông báo đẩy FCM: đăng ký thiết bị, điều hướng khi bấm | network (+ Firebase trên Android) |
+| `appkit-platform` | mở link, copy, chia sẻ, chọn ảnh, múi giờ qua một interface (có bản giả để test) | core |
 | `appkit-reminder` | nhắc giờ bằng thông báo cục bộ (chạy cả khi app tắt), nhắc lặp đúng giờ qua giờ mùa hè | core |
 | `appkit-ui` | component Material 3 kiểu shadcn, theme sinh từ CSS của web, layout kiểu Tailwind, block kiểu Bootstrap, icon SVG, app mẫu 5 tab | core + Compose |
 
@@ -83,11 +86,13 @@ Hai kiểu backend, một cơ chế: chỗ **duy nhất** khác nhau là `AuthCo
 appkit-core/      Language  Log  Storage  Stores  Crypto  TtlCache  Jwt
 appkit-network/   HttpTransport  AuthedClient  Requests  Endpoints  AuthContract  Failover  ApiError  Cache  AppKit
 appkit-push/      Push  PushNavigation                       → docs/push.md
+appkit-platform/  PlatformServices (openUrl, clipboard, share, pickImage, timezone) + Fake  → docs/platform.md
 appkit-reminder/  Reminders  (Android AlarmManager, iOS UNUserNotificationCenter)  → docs/reminder.md
 appkit-ui/        Theme  Components
   mỗi module: src/{commonMain,commonTest,desktopMain,androidMain,iosMain}  (expect/actual cho phần theo nền tảng)
 tools/shadcn-theme.mjs   sinh AppColors sáng/tối từ CSS shadcn (node --test tools/*.test.mjs)
 samples/core-only/       app mẫu chỉ lấy appkit-core
+tools/new-app.mjs        sinh dự án app mới (Android + iOS + desktop) nối sẵn kit
 docs/*.md                tài liệu từng module, mỗi mục có ví dụ CHÉP TỪ CODE ĐÃ CHẠY (node tools/sync-snippets.mjs)
 AGENTS.md                hướng dẫn cho agent: pull về, dùng, sửa
 CHANGELOG.md
@@ -101,6 +106,6 @@ CHANGELOG.md
 node --test tools/*.test.mjs                           # bộ sinh theme
 ```
 
-Đã kiểm trên JVM: 108 test (core 47, network 41, push 10, reminder 10) + 6 test công cụ (bộ sinh theme, SVG → Kotlin); ví dụ trong docs là code đã biên dịch và chạy.
+Đã kiểm trên JVM: 126 test (core 60, network 51, push 10, reminder 10, platform 5) + 9 test công cụ (bộ sinh theme, SVG → Kotlin, sinh app); dự án sinh bởi new-app biên dịch được với kit; ví dụ trong docs là code đã biên dịch và chạy.
 **Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, Swift), build Android/iOS;
 `appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.

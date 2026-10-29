@@ -6,6 +6,8 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -78,6 +80,13 @@ fun AppTheme(
     CompositionLocalProvider(LocalAppColors provides c, LocalAppTypography provides typography) {
         MaterialTheme(colorScheme = c.toMaterial(), content = content)
     }
+}
+
+/** Như [AppTheme] nhưng lấy sáng/tối từ [AppSettings] (đã nhớ qua các lần mở app): `settings.setTheme(ThemeMode.Dark)` là UI đổi ngay. */
+@Composable
+fun AppTheme(light: AppColors, dark: AppColors, settings: kmp.bootstrap.appkit.AppSettings, typography: AppTypography = AppTypography(), content: @Composable () -> Unit) {
+    val mode by settings.theme.collectAsState()
+    AppTheme(light, dark, mode, typography, content)
 }
 
 /** Ánh xạ token shadcn sang ColorScheme của Material 3 để component Material mặc định cũng đúng màu. */

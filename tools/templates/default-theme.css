@@ -1,0 +1,21 @@
+/* Màu mặc định cho app mới (trung tính, accent xanh ngọc). Đổi ở đây hoặc trỏ --css tới CSS của web rồi sinh lại AppColors.kt. */
+:root {
+  --background: #f7f8f8; --foreground: #101617;
+  --card: #ffffff; --card-foreground: #101617; --popover: #ffffff; --popover-foreground: #101617;
+  --primary: #2e8175; --primary-foreground: #ffffff;
+  --secondary: #e9efee; --secondary-foreground: #101617;
+  --muted: #e9efee; --muted-foreground: #526262;
+  --accent: #e9efee; --accent-foreground: #101617;
+  --destructive: #b8452b; --destructive-foreground: #ffffff;
+  --border: #d6dedd; --input: #8aa09d; --ring: #2e8175;
+}
+.dark {
+  --background: #0b1214; --foreground: #e3edeb;
+  --card: #131c1e; --card-foreground: #e3edeb; --popover: #1a2427; --popover-foreground: #e3edeb;
+  --primary: #40b3a2; --primary-foreground: #06110f;
+  --secondary: #1a2427; --secondary-foreground: #e3edeb;
+  --muted: #1a2427; --muted-foreground: #93a7a7;
+  --accent: #1a2427; --accent-foreground: #e3edeb;
+  --destructive: #e08355; --destructive-foreground: #06110f;
+  --border: #263437; --input: #263437; --ring: #40b3a2;
+}
