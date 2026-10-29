@@ -76,7 +76,7 @@ class HttpTransport(
     } catch (e: ApiError) {
         Result.failure(e)
     } catch (e: Throwable) {
-        Result.failure((if (isTimeoutError(e)) ApiError(0, Strings.text(Msg.Timeout), kind = ErrorKind.Timeout, cause = e) else ApiError(0, Strings.text(Msg.NetworkUnreachable), kind = ErrorKind.Network, cause = e)).logFailure(method, path))
+        Result.failure((if (isTimeoutError(e)) ApiError(0, Language.text(Msg.Timeout), kind = ErrorKind.Timeout, cause = e) else ApiError(0, Language.text(Msg.NetworkUnreachable), kind = ErrorKind.Network, cause = e)).logFailure(method, path))
     }
 
     private suspend fun once(method: String, path: String, body: JsonObject?, bearer: String?, timeoutMs: Long?): RawResponse {

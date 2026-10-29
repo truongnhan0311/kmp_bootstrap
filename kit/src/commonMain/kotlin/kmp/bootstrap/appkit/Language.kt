@@ -2,11 +2,11 @@ package kmp.bootstrap.appkit
 
 /*
  * Chữ hiện cho NGƯỜI DÙNG do kit sinh ra (lỗi mạng, lỗi định dạng, giải mã thất bại…) theo ngôn ngữ:
- *   1. ngôn ngữ app đặt:        Strings.language = "vi"
+ *   1. ngôn ngữ app đặt:        Language.current = "vi"
  *   2. nếu chưa đặt → ngôn ngữ hệ thống của máy (Android/iOS/desktop)
  *   3. nếu chưa có bản dịch cho ngôn ngữ đó → tiếng Anh ("en"), luôn đầy đủ
  *
- * App có chuỗi riêng thì thêm/ghi đè:  Strings.register("fr", mapOf(Msg.Timeout to "Délai dépassé"))
+ * App có chuỗi riêng thì thêm/ghi đè:  Language.register("fr", mapOf(Msg.Timeout to "Délai dépassé"))
  * Chỉ chuỗi hướng tới NGƯỜI DÙNG được dịch. Dòng log và thông báo cho lập trình viên (require/check) cố định bằng tiếng Anh: log do người
  * phát triển/hỗ trợ đọc và grep, nên cùng một sự kiện phải ra cùng một câu trên mọi máy, bất kể ngôn ngữ người dùng.
  */
@@ -17,36 +17,36 @@ enum class Msg {
     NotificationChannel,
 }
 
-/** Mã ngôn ngữ ISO 639-1 viết thường của máy ("vi", "en", "zh"…). Nền tảng cài; Strings tự chuẩn hoá và rơi về "en". */
+/** Mã ngôn ngữ ISO 639-1 viết thường của máy ("vi", "en", "zh"…). Nền tảng cài; Language tự chuẩn hoá và rơi về "en". */
 expect fun systemLanguage(): String
 
-object Strings {
+object Language {
     private fun builtIn() = mutableMapOf<String, Map<Msg, String>>("en" to EN, "vi" to VI, "zh" to ZH, "es" to ES)
     private var tables = builtIn()
     private var override: String? = null
 
     /** Ngôn ngữ đang dùng. Chưa đặt thì theo máy; đặt `null` để quay lại theo máy. */
-    var language: String
-        get() = override ?: normaliseLanguage(systemLanguage())
-        set(value) { override = value.takeIf { it.isNotBlank() }?.let(::normaliseLanguage) }
+    var current: String
+        get() = override ?: normalise(systemLanguage())
+        set(value) { override = value.takeIf { it.isNotBlank() }?.let(::normalise) }
 
     /** Thêm hoặc ghi đè bản dịch (gộp với bảng sẵn có; khoá thiếu sẽ rơi về tiếng Anh). */
     fun register(language: String, messages: Map<Msg, String>) {
-        val key = normaliseLanguage(language)
+        val key = normalise(language)
         tables[key] = (tables[key] ?: emptyMap()) + messages
     }
 
-    fun text(msg: Msg): String = tables[language]?.get(msg) ?: EN.getValue(msg)
+    fun text(msg: Msg): String = tables[current]?.get(msg) ?: EN.getValue(msg)
 
     /** "vi-VN" → "vi", "zh_Hans_CN" → "zh", "EN" → "en". */
-    fun normaliseLanguage(raw: String): String = raw.trim().lowercase().split('-', '_').firstOrNull().orEmpty().ifEmpty { "en" }
+    fun normalise(raw: String): String = raw.trim().lowercase().split('-', '_').firstOrNull().orEmpty().ifEmpty { "en" }
 
     /** Chỉ dùng trong test. */
     internal fun reset() { override = null; tables = builtIn() }
 }
 
 /** Câu mặc định đọc được cho một loại lỗi, theo ngôn ngữ hiện tại — dùng khi server không kèm lời nhắn. */
-fun ErrorKind.defaultMessage(): String = Strings.text(
+fun ErrorKind.defaultMessage(): String = Language.text(
     when (this) {
         ErrorKind.Network -> Msg.NetworkUnreachable; ErrorKind.Timeout -> Msg.Timeout; ErrorKind.Unauthorized -> Msg.Unauthorized
         ErrorKind.Forbidden -> Msg.Forbidden; ErrorKind.NotFound -> Msg.NotFound; ErrorKind.Conflict -> Msg.Conflict

@@ -33,7 +33,7 @@ HttpTransport    gửi request: failover, timeout, thử lại GET, log, phân l
        └─ get/post/put/patch/delete, getOrNull   (Requests.kt)  body @Serializable → JSON, JSON → đối tượng, lỗi → ApiError(kind)
 AppStorage       prefs (SharedPreferences/NSUserDefaults/file) + secrets (Keystore/Keychain) + tokens
 Endpoints        MỘT chỗ khai báo mọi đường dẫn API (preset taper/qtDepot); contract và push chỉ đọc, không tự mang đường dẫn
-Strings          chữ hiện cho người dùng (lỗi…) theo ngôn ngữ: app đặt → ngôn ngữ hệ thống → EN; en/vi/zh/es, thêm bằng Strings.register
+Language         chữ hiện cho người dùng (lỗi…) theo ngôn ngữ: app đặt → ngôn ngữ hệ thống → EN; en/vi/zh/es, thêm bằng Language.register
 AppLog           console + RotatingFileSink (xoay vòng, xoá theo tuổi, che mật khẩu hẳn; token giữ 5 ký tự cuối để tra log)
 AppCrypto        mã hoá/giải mã AES-256-GCM, khoá từ mật khẩu (PBKDF2) hoặc khoá thô, SHA-256
 push/            PushManager + PushContract (Taper / qt-depot) + PushNavigation   → docs/push.md

@@ -40,7 +40,7 @@ object AppCrypto {
         cipherOf(key).decrypt(box)
     } catch (e: Exception) {
         AppLog.w("crypto", "decrypt failed (${e::class.simpleName})") // never log key or data
-        throw CryptoError(Strings.text(Msg.DecryptFailed), e)
+        throw CryptoError(Language.text(Msg.DecryptFailed), e)
     }
 
     /** Mã hoá chuỗi bằng mật khẩu → chuỗi base64 (phiên bản + salt + bản mã). */
@@ -53,8 +53,8 @@ object AppCrypto {
 
     @OptIn(ExperimentalEncodingApi::class)
     suspend fun decryptText(token: String, password: String): String {
-        val raw = try { Base64.UrlSafe.decode(token) } catch (e: Exception) { throw CryptoError(Strings.text(Msg.BadFormat), e) }
-        if (raw.size <= 1 + SALT_BYTES || raw[0] != VERSION) throw CryptoError(Strings.text(Msg.BadFormat))
+        val raw = try { Base64.UrlSafe.decode(token) } catch (e: Exception) { throw CryptoError(Language.text(Msg.BadFormat), e) }
+        if (raw.size <= 1 + SALT_BYTES || raw[0] != VERSION) throw CryptoError(Language.text(Msg.BadFormat))
         val salt = raw.copyOfRange(1, 1 + SALT_BYTES)
         val box = raw.copyOfRange(1 + SALT_BYTES, raw.size)
         return decrypt(box, deriveKey(password, salt)).decodeToString()

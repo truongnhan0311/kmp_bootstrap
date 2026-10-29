@@ -39,8 +39,8 @@ suspend inline fun <reified T, reified B> AuthedClient.patch(path: String, body:
 suspend fun AuthedClient.sendNoContent(method: String, path: String, body: JsonObject? = null, auth: Boolean = true) { requestUnit(method, path, body, auth) }
 
 fun <B> AuthedClient.encodeBody(body: B, serializer: KSerializer<B>): JsonObject {
-    val element = try { json.encodeToJsonElement(serializer, body) } catch (e: Exception) { throw ApiError(0, Strings.text(Msg.BodyEncodeFailed), null, ErrorKind.Other, e).logFailure("-", "encode") }
-    return element as? JsonObject ?: throw ApiError(0, Strings.text(Msg.BodyNotObject), null, ErrorKind.Other).logFailure("-", "encode")
+    val element = try { json.encodeToJsonElement(serializer, body) } catch (e: Exception) { throw ApiError(0, Language.text(Msg.BodyEncodeFailed), null, ErrorKind.Other, e).logFailure("-", "encode") }
+    return element as? JsonObject ?: throw ApiError(0, Language.text(Msg.BodyNotObject), null, ErrorKind.Other).logFailure("-", "encode")
 }
 
 /** Như [get] nhưng 404 trả null — cho dữ liệu "có thể chưa có" (không phải sự cố). Lỗi khác vẫn ném. */
@@ -54,7 +54,7 @@ suspend fun <T> AuthedClient.request(method: String, path: String, body: JsonObj
     return try {
         json.decodeFromString(serializer, r.body)
     } catch (e: Exception) {
-        throw ApiError(r.status, Strings.text(Msg.Parse), r.requestId, ErrorKind.Parse, e).logFailure(method, path)
+        throw ApiError(r.status, Language.text(Msg.Parse), r.requestId, ErrorKind.Parse, e).logFailure(method, path)
     }
 }
 
