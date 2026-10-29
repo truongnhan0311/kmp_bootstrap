@@ -22,6 +22,22 @@ class LogTest {
         assertTrue(text.contains("[redacted]"))
     }
 
+    @Test fun longTokensKeepFiveTrailingCharsForTracingButPasswordsNeverDo() {
+        val token = "eyJhbGciOiJIUzI1NiJ9.payload.SIGNATURE12345"
+        val out = Redactor.redact("""refresh_token=$token password=hunter2-correct-horse Authorization: Bearer $token""")
+        assertTrue(out.contains("[redacted…12345]"), out)
+        assertFalse(out.contains("SIGNATURE1"), "chỉ 5 ký tự cuối, không hơn")
+        assertFalse(out.contains("horse") || out.contains("hunter"), "mật khẩu che hẳn, không để lại đuôi")
+        assertTrue(out.contains("password=[redacted]"))
+    }
+
+    @Test fun shortSecretsAreFullyHiddenBecauseFiveCharsWouldBeMostOfThem() {
+        val out = Redactor.redact("""{"token":"abcdefgh","refresh_token":"abc12345678901"}""")  // 8 và 14 ký tự
+        assertFalse(out.contains("defgh") || out.contains("01\""), out)
+        assertEquals("""{"token":"[redacted]","refresh_token":"[redacted]"}""", out)
+        assertEquals("[redacted…56789]", Redactor.mask("0123456789ABCDEF56789"))
+    }
+
     @Test fun rotatesWhenTooBigAndKeepsOnlyTheConfiguredNumberOfFiles() = runTest {
         val fs = FakeFileSystem()
         val sink = RotatingFileSink(dir, maxBytes = 200, keepFiles = 3, maxAgeMillis = null, fs = fs)

@@ -43,14 +43,33 @@ object AppLog {
     }
 }
 
-/** Che thứ không bao giờ được nằm trong file log: mật khẩu, token, header Authorization. */
+/**
+ * Che thứ không bao giờ được nằm trong file log: mật khẩu, token, khoá API, header Authorization.
+ *
+ * Để TRA LOG (biết hai dòng nói về cùng một token), token/khoá giữ lại [TAIL] ký tự cuối: `[redacted…c123x]`.
+ * Hai ngoại lệ có chủ ý: (1) MẬT KHẨU luôn che hẳn — 5 ký tự cuối của mật khẩu là một phần mật khẩu; (2) giá trị ngắn
+ * (< [MIN_FOR_TAIL] ký tự) che hẳn, vì với chuỗi ngắn 5 ký tự cuối đã là phần lớn giá trị.
+ */
 object Redactor {
-    private val rules = listOf(
-        Regex("(?i)(\"?(?:password|passwd|refresh_token|access_token|token|secret|api_key)\"?\\s*[:=]\\s*\"?)([^\"\\s,}&]+)") to "$1[redacted]",
-        Regex("(?i)(authorization\\s*[:=]\\s*(?:bearer\\s+)?)([^\\s\"]+)") to "$1[redacted]",
-        Regex("(?i)(bearer\\s+)([A-Za-z0-9._~+/=-]{8,})") to "$1[redacted]",
+    const val TAIL = 5
+    const val MIN_FOR_TAIL = 16
+
+    private val passwordRule = Regex("(?i)(\"?(?:password|passwd)\"?\\s*[:=]\\s*\"?)([^\"\\s,}&]+)")
+    private val tokenRules = listOf(
+        Regex("(?i)(\"?(?:refresh_token|access_token|token|secret|api_key)\"?\\s*[:=]\\s*\"?)([^\"\\s,}&]+)"),
+        Regex("(?i)(authorization\\s*[:=]\\s*(?:bearer\\s+)?)([^\\s\"]+)"),
+        Regex("(?i)(bearer\\s+)([A-Za-z0-9._~+/=-]{8,})"),
     )
-    fun redact(text: String): String = rules.fold(text) { acc, (re, to) -> re.replace(acc, to) }
+
+    /** `[redacted]` hoặc `[redacted…xxxxx]` (5 ký tự cuối, chỉ khi đủ dài). */
+    fun mask(value: String): String =
+        if (value.length >= MIN_FOR_TAIL && !value.startsWith("[redacted")) "[redacted…${value.takeLast(TAIL)}]" else "[redacted]"
+
+    fun redact(text: String): String {
+        var out = passwordRule.replace(text) { it.groupValues[1] + "[redacted]" }
+        for (rule in tokenRules) out = rule.replace(out) { it.groupValues[1] + mask(it.groupValues[2]) }
+        return out
+    }
 }
 
 /** In ra console của nền tảng (logcat / NSLog / stdout). */
