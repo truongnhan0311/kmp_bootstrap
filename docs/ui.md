@@ -11,7 +11,7 @@ commonMain.dependencies { implementation("kmp.bootstrap:appkit-ui") }
 
 `tools/shadcn-theme.mjs` đọc biến `--background`, `--primary`, `--muted-foreground`… (hex, rgb, hsl, **oklch** của shadcn mới, `var()` lồng nhau)
 và sinh `AppColors` sáng/tối. Token thiếu rơi về token liên quan; thiếu hẳn thì báo lỗi rõ. Token riêng của app (vùng công suất, màu biểu đồ…)
-vào `colors.extra("tên")`. Chạy test của bộ sinh: `node --test tools/`.
+vào `colors.extra("tên")`. Chạy test của bộ sinh: `node --test tools/*.test.mjs`.
 
 <!-- snippet: ui-theme -->
 ```kotlin

@@ -7,7 +7,7 @@
 ```sh
 git clone https://github.com/truongnhan0311/kmp_bootstrap && cd kmp_bootstrap
 ./gradlew -PdesktopOnly=true desktopTest      # cần JDK 17+; KHÔNG cần Android SDK/Xcode/tài khoản nào
-node --test tools/                            # bộ sinh theme (cần Node 18+)
+node --test tools/*.test.mjs                            # bộ sinh theme (cần Node 18+)
 node tools/sync-snippets.mjs --check          # tài liệu khớp với ví dụ đã biên dịch
 ```
 Lần đầu tải thư viện từ Maven Central mất vài phút. Nếu gặp `429 Too Many Requests` khi tải: đợi rồi chạy lại.
@@ -37,7 +37,7 @@ Mẫu app tối thiểu: `samples/core-only/` (chỉ lấy `appkit-core`; chạy
 - **Dòng log và thông báo cho lập trình viên (`require`/`check`) luôn tiếng Anh.** Mật khẩu không bao giờ vào log; token chỉ qua `Redactor`.
 - Phụ thuộc đi một chiều: `core ← network ← push`, `core ← reminder`, `ui` độc lập. Đừng để `core` biết gì về mạng.
 - Cái gì theo nền tảng thì `expect/actual` (`androidMain`, `iosMain`, `desktopMain`); phần chung viết ở `commonMain` và **phải có test chạy được trên JVM**.
-- Thêm tính năng → thêm test, và thêm ví dụ vào file `*Examples.kt` (đoạn giữa `// region: tên` … `// endregion`) rồi đặt `<!-- snippet: tên -->…<!-- /snippet -->` trong `docs/*.md`,
+- Thêm tính năng → thêm test, và thêm ví dụ vào file `*Examples.kt` (đoạn giữa `// region: tên` … `// endregion`) rồi đặt cặp thẻ `snippet` trong `docs/*.md` (cú pháp: đầu file `tools/sync-snippets.mjs`; xem mẫu trong `docs/core.md`),
   chạy `node tools/sync-snippets.mjs`. Tài liệu chép từ code đã chạy nên không bao giờ lệch.
 - Đổi API công khai (tên, tham số, hành vi) → ghi vào `CHANGELOG.md`. Đừng phá API đã có nếu không bắt buộc; thêm tham số có giá trị mặc định thay vì đổi chữ ký.
 - Commit bằng tiếng Việt, đứng tên chủ dự án; không thêm `Co-Authored-By`/`Claude-Session`.

@@ -86,7 +86,7 @@ appkit-push/      Push  PushNavigation                       → docs/push.md
 appkit-reminder/  Reminders  (Android AlarmManager, iOS UNUserNotificationCenter)  → docs/reminder.md
 appkit-ui/        Theme  Components
   mỗi module: src/{commonMain,commonTest,desktopMain,androidMain,iosMain}  (expect/actual cho phần theo nền tảng)
-tools/shadcn-theme.mjs   sinh AppColors sáng/tối từ CSS shadcn (node --test tools/)
+tools/shadcn-theme.mjs   sinh AppColors sáng/tối từ CSS shadcn (node --test tools/*.test.mjs)
 samples/core-only/       app mẫu chỉ lấy appkit-core
 docs/*.md                tài liệu từng module, mỗi mục có ví dụ CHÉP TỪ CODE ĐÃ CHẠY (node tools/sync-snippets.mjs)
 AGENTS.md                hướng dẫn cho agent: pull về, dùng, sửa
@@ -98,7 +98,7 @@ CHANGELOG.md
 ```sh
 ./gradlew -PdesktopOnly=true desktopTest     # JVM (riêng :appkit-ui chỉ biên dịch được: compileTestKotlinDesktop) — không cần Android SDK/Xcode
 ./gradlew build                              # máy có Android Studio/Xcode: đủ Android + iOS
-node --test tools/                           # bộ sinh theme
+node --test tools/*.test.mjs                           # bộ sinh theme
 ```
 
 Đã kiểm trên JVM: 102 test (core 41, network 41, push 10, reminder 10) + 3 test bộ sinh theme; ví dụ trong docs là code đã biên dịch và chạy.
