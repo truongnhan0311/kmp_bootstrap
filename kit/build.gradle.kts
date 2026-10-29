@@ -24,15 +24,17 @@ kotlin {
             api(libs.kotlinx.serialization.json)
             api(libs.kotlinx.datetime)
             api(libs.ktor.client.core)
+            api(libs.okio)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+            implementation(libs.okio.fakefilesystem)
         }
         val desktopMain by getting { dependencies { implementation(libs.ktor.client.cio) } }
         if (!desktopOnly) {
-            val androidMain by getting { dependencies { implementation(libs.ktor.client.okhttp) } }
+            val androidMain by getting { dependencies { implementation(libs.ktor.client.okhttp); implementation(libs.androidx.security.crypto) } }
             val iosMain by getting { dependencies { implementation(libs.ktor.client.darwin) } }
         }
     }

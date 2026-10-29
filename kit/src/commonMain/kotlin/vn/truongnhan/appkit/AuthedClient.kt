@@ -22,6 +22,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlin.time.TimeSource
 
 data class RawResponse(val status: Int, val body: String, val requestId: String?)
 
@@ -112,6 +113,19 @@ class AuthedClient(
         }
     }
 
+    /**
+     * Làm mới phiên NGAY, từ bất kỳ đâu (khi mở app, khi app quay lại từ nền, trước một thao tác dài…). An toàn gọi đồng thời:
+     * dùng chung khoá với các request đang tự làm mới nên refresh token vẫn chỉ bị đổi một lần.
+     * Trả true nếu đang có phiên hợp lệ sau lệnh gọi; false nếu không có phiên, mạng hỏng, hoặc phiên đã chết.
+     */
+    suspend fun refreshNow(): Boolean {
+        if (tokens.refresh() == null) return false
+        return refreshSession(tokens.access())
+    }
+
+    /** Có cặp token trong máy (chưa chắc còn hợp lệ). */
+    fun hasSession(): Boolean = tokens.access() != null && tokens.refresh() != null
+
     private suspend fun refreshIfExpiring() {
         if (refreshMarginSeconds <= 0 || tokens.refresh() == null) return
         val access = tokens.access() ?: return
@@ -131,8 +145,8 @@ class AuthedClient(
         }
         val pair = contract.parseTokens(r.status, r.body)
         when {
-            pair != null -> { tokens.save(pair.access, pair.refresh); true }
-            contract.isRefreshDead(r.status, r.body) -> { tokens.clear(); _sessionExpired.tryEmit(Unit); false }
+            pair != null -> { tokens.save(pair.access, pair.refresh); AppLog.i("auth", "đã làm mới phiên"); true }
+            contract.isRefreshDead(r.status, r.body) -> { AppLog.w("auth", "refresh token đã chết (HTTP ${r.status}) — cần đăng nhập lại"); tokens.clear(); _sessionExpired.tryEmit(Unit); false }
             else -> false
         }
     }
@@ -152,6 +166,7 @@ class AuthedClient(
     }
 
     private suspend fun send1(base: String, method: String, path: String, body: JsonObject?, bearer: String?): RawResponse {
+        val started = TimeSource.Monotonic.markNow()
         val response = http.request {
             this.method = HttpMethod.parse(method)
             url(base + path)
@@ -160,6 +175,9 @@ class AuthedClient(
             if (body != null) { contentType(ContentType.Application.Json); setBody(body.toString()) }
         }
 
-        return RawResponse(response.status.value, response.bodyAsText(), response.headers["X-Request-Id"])
+        val requestId = response.headers["X-Request-Id"]
+        AppLog.d("http", "$method $path -> ${response.status.value} (${started.elapsedNow().inWholeMilliseconds} ms)" + (requestId?.let { " req=$it" } ?: ""))
+
+        return RawResponse(response.status.value, response.bodyAsText(), requestId)
     }
 }

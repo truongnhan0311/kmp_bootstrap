@@ -18,4 +18,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "kmp_bootstrap"
-include(":kit")
+include(":kit", ":ui")

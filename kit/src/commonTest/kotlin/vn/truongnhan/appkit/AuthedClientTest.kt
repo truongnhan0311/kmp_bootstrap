@@ -128,6 +128,20 @@ class AuthedClientTest {
     }
 
     @Test
+    fun refreshNowCanBeCalledFromAnywhereAndSharesOneExchange() = runTest {
+        var refreshCalls = 0
+        val engine = MockEngine { respond(tokensPair("n${++refreshCalls}", "r$refreshCalls"), HttpStatusCode.OK, JSON) }
+        val tokens = MemoryTokenStore("old", "r0")
+        val client = AuthedClient("https://x.test", tokens, PlainJsonContract(), "app", engine, refreshMarginSeconds = 0)
+        assertTrue(client.hasSession())
+        val results = (1..5).map { async { client.refreshNow() } }.awaitAll()
+        // lần gọi đầu đổi token; các lần sau thấy access đã khác nên dùng luôn
+        assertTrue(results.all { it }); assertEquals("n1", tokens.access())
+        assertTrue(refreshCalls in 1..5)
+        assertFalse(AuthedClient("https://x.test", MemoryTokenStore(), PlainJsonContract(), "app", engine).refreshNow(), "không có phiên thì false")
+    }
+
+    @Test
     fun logoutClearsTokensEvenWhenOffline() = runTest {
         val engine = MockEngine { throw RuntimeException("Unable to resolve host") }
         val tokens = MemoryTokenStore("a", "r")
