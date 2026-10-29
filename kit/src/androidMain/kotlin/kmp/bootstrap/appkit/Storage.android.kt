@@ -10,7 +10,7 @@ object AppKitAndroid {
     internal lateinit var appContext: Context
     fun init(context: Context) { appContext = context.applicationContext }
     internal fun context(): Context {
-        check(::appContext.isInitialized) { "Gọi AppKitAndroid.init(context) trước khi dùng AppStorage" }
+        check(::appContext.isInitialized) { "Call AppKitAndroid.init(context) before using AppStorage" }
         return appContext
     }
 }

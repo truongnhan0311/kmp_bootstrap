@@ -30,8 +30,8 @@ object AppKit {
     private var _storage: AppStorage? = null
     private var _fileLog: RotatingFileSink? = null
 
-    val client: AuthedClient get() = _client ?: error("Gọi AppKit.start(...) trước")
-    val storage: AppStorage get() = _storage ?: error("Gọi AppKit.start(...) trước")
+    val client: AuthedClient get() = _client ?: error("Call AppKit.start(...) first")
+    val storage: AppStorage get() = _storage ?: error("Call AppKit.start(...) first")
 
     fun start(config: AppKitConfig) {
         val storage = AppStorage(config.name)

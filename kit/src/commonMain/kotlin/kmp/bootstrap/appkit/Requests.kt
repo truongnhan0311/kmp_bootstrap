@@ -39,8 +39,8 @@ suspend inline fun <reified T, reified B> AuthedClient.patch(path: String, body:
 suspend fun AuthedClient.sendNoContent(method: String, path: String, body: JsonObject? = null, auth: Boolean = true) { requestUnit(method, path, body, auth) }
 
 fun <B> AuthedClient.encodeBody(body: B, serializer: KSerializer<B>): JsonObject {
-    val element = try { json.encodeToJsonElement(serializer, body) } catch (e: Exception) { throw ApiError(0, "Không đổi được dữ liệu gửi đi sang JSON", null, ErrorKind.Other, e) }
-    return element as? JsonObject ?: throw ApiError(0, "Body phải là một đối tượng JSON", null, ErrorKind.Other)
+    val element = try { json.encodeToJsonElement(serializer, body) } catch (e: Exception) { throw ApiError(0, Strings.text(Msg.BodyEncodeFailed), null, ErrorKind.Other, e) }
+    return element as? JsonObject ?: throw ApiError(0, Strings.text(Msg.BodyNotObject), null, ErrorKind.Other)
 }
 
 /** Như [get] nhưng 404 trả null — cho dữ liệu "có thể chưa có" (không phải sự cố). Lỗi khác vẫn ném. */
@@ -54,7 +54,7 @@ suspend fun <T> AuthedClient.request(method: String, path: String, body: JsonObj
     return try {
         json.decodeFromString(serializer, r.body)
     } catch (e: Exception) {
-        throw ApiError(r.status, "Phản hồi của máy chủ không đúng định dạng", r.requestId, ErrorKind.Parse, e)
+        throw ApiError(r.status, Strings.text(Msg.Parse), r.requestId, ErrorKind.Parse, e)
     }
 }
 

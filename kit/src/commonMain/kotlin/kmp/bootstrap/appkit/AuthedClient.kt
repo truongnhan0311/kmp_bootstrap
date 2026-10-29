@@ -76,13 +76,13 @@ class AuthedClient(
     /** Như [raw] nhưng ném [ApiError] khi mã HTTP không phải 2xx, và giải mã phần thân. */
     suspend fun <T> send(method: String, path: String, body: JsonObject? = null, auth: Boolean = true, decode: (String) -> T): T {
         val r = raw(method, path, body, auth)
-        if (r.status !in 200..299) throw ApiError(r.status, contract.errorMessage(r.status, r.body), r.requestId)
+        if (r.status !in 200..299) throw ApiError(r.status, errorMessageOf(r), r.requestId)
 
         return decode(r.body)
     }
 
     /** Câu báo lỗi đọc được từ phản hồi lỗi, theo hợp đồng của backend. */
-    fun errorMessageOf(r: RawResponse): String = contract.errorMessage(r.status, r.body)
+    fun errorMessageOf(r: RawResponse): String = contract.errorMessage(r.status, r.body) ?: ErrorKind.ofStatus(r.status).defaultMessage()
 
     /** Thu hồi phiên trên máy chủ rồi xoá token cục bộ. Lỗi mạng không chặn việc đăng xuất ở máy. */
     suspend fun logout(all: Boolean = false) {

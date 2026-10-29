@@ -26,8 +26,8 @@ interface AuthContract {
     fun isTokenRejected(status: Int, body: String): Boolean
     /** Phản hồi của lời gọi làm mới nói refresh token đã chết thật (phải đăng nhập lại), khác lỗi tạm? */
     fun isRefreshDead(status: Int, body: String): Boolean
-    /** Câu báo lỗi đọc được từ phản hồi lỗi. */
-    fun errorMessage(status: Int, body: String): String
+    /** Câu báo lỗi do SERVER viết trong phản hồi lỗi; null nếu không có (khi đó kit dùng câu mặc định theo ngôn ngữ). */
+    fun errorMessage(status: Int, body: String): String?
     /** Đường đăng nhập/làm mới/đăng xuất không tự làm mới (tránh vòng lặp). */
     fun isAuthPath(path: String): Boolean =
         path.endsWith("/login") || path.endsWith("/register") || path.contains("/refresh") || path.endsWith("/logout")
@@ -60,7 +60,7 @@ class PlainJsonContract(
 
     override fun isTokenRejected(status: Int, body: String) = status == 401
     override fun isRefreshDead(status: Int, body: String) = status == 401
-    override fun errorMessage(status: Int, body: String) = parseObject(body)?.str("message", "error") ?: "HTTP $status"
+    override fun errorMessage(status: Int, body: String) = parseObject(body)?.str("message", "error")
 }
 
 /**
@@ -100,7 +100,7 @@ class EnvelopeContract(
             && status < 500
     }
 
-    override fun errorMessage(status: Int, body: String) = (parseObject(body)?.get("message") as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() } ?: "HTTP $status"
+    override fun errorMessage(status: Int, body: String) = (parseObject(body)?.get("message") as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
 }
 
 /** Thông điệp báo token bị thu hồi/hết hạn ("Token_Revoked", "token expired"…). */

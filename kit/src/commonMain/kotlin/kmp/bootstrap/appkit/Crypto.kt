@@ -39,7 +39,7 @@ object AppCrypto {
     suspend fun decrypt(box: ByteArray, key: ByteArray): ByteArray = try {
         cipherOf(key).decrypt(box)
     } catch (e: Exception) {
-        throw CryptoError("Giải mã thất bại: sai khoá hoặc dữ liệu bị sửa", e)
+        throw CryptoError(Strings.text(Msg.DecryptFailed), e)
     }
 
     /** Mã hoá chuỗi bằng mật khẩu → chuỗi base64 (phiên bản + salt + bản mã). */
@@ -52,8 +52,8 @@ object AppCrypto {
 
     @OptIn(ExperimentalEncodingApi::class)
     suspend fun decryptText(token: String, password: String): String {
-        val raw = try { Base64.UrlSafe.decode(token) } catch (e: Exception) { throw CryptoError("Dữ liệu không đúng định dạng", e) }
-        if (raw.size <= 1 + SALT_BYTES || raw[0] != VERSION) throw CryptoError("Dữ liệu không đúng định dạng hoặc phiên bản lạ")
+        val raw = try { Base64.UrlSafe.decode(token) } catch (e: Exception) { throw CryptoError(Strings.text(Msg.BadFormat), e) }
+        if (raw.size <= 1 + SALT_BYTES || raw[0] != VERSION) throw CryptoError(Strings.text(Msg.BadFormat))
         val salt = raw.copyOfRange(1, 1 + SALT_BYTES)
         val box = raw.copyOfRange(1 + SALT_BYTES, raw.size)
         return decrypt(box, deriveKey(password, salt)).decodeToString()
@@ -66,7 +66,7 @@ object AppCrypto {
         provider.get(PBKDF2).secretDerivation(SHA256, ITERATIONS, 256.bits, salt).deriveSecret(password.encodeToByteArray()).toByteArray()
 
     private suspend fun cipherOf(key: ByteArray) = run {
-        require(key.size == 32) { "khoá phải đúng 32 byte (AES-256)" }
+        require(key.size == 32) { "key must be exactly 32 bytes (AES-256)" }
         provider.get(AES.GCM).keyDecoder().decodeFromByteArray(AES.Key.Format.RAW, key).cipher()
     }
 }

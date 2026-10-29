@@ -14,6 +14,8 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kmp.bootstrap.appkit.AppLog
+import kmp.bootstrap.appkit.Msg
+import kmp.bootstrap.appkit.Strings
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -30,12 +32,12 @@ object AppKitPush {
     internal var activityClass: Class<out Activity>? = null
     internal var smallIcon: Int = android.R.drawable.ic_dialog_info
     internal var channelId = "default"
-    internal var channelName = "Thông báo"
+    internal var channelName = Strings.text(Msg.NotificationChannel)
     /** Dữ liệu phụ chạy mỗi khi có push (kể cả lúc app ở nền): tải trước dữ liệu, cập nhật số chưa đọc… */
     internal var onMessage: (PushMessage) -> Unit = {}
 
     fun configure(activity: Class<out Activity>, smallIcon: Int = android.R.drawable.ic_dialog_info,
-                  channelId: String = "default", channelName: String = "Thông báo", onMessage: (PushMessage) -> Unit = {}) {
+                  channelId: String = "default", channelName: String = Strings.text(Msg.NotificationChannel), onMessage: (PushMessage) -> Unit = {}) {
         this.activityClass = activity; this.smallIcon = smallIcon; this.channelId = channelId; this.channelName = channelName; this.onMessage = onMessage
     }
 

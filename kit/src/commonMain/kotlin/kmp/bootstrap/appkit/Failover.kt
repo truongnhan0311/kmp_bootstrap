@@ -12,7 +12,7 @@ import kotlin.time.TimeSource
  * Một địa chỉ duy nhất = không làm gì.
  */
 class Failover(val baseUrls: List<String>, private val retryPrimaryAfter: Duration = 15.minutes) {
-    init { require(baseUrls.isNotEmpty()) { "cần ít nhất một địa chỉ" } }
+    init { require(baseUrls.isNotEmpty()) { "at least one base URL is required" } }
 
     @Volatile private var active = 0
     @Volatile private var switchedAt: TimeMark? = null

@@ -32,6 +32,7 @@ HttpTransport    gửi request: failover, timeout, thử lại GET, log, phân l
   └─ AuthedClient   bọc transport: JWT, làm mới trước hạn, 401→làm mới→gửi lại, sessionExpired
        └─ get/post/put/patch/delete, getOrNull   (Requests.kt)  body @Serializable → JSON, JSON → đối tượng, lỗi → ApiError(kind)
 AppStorage       prefs (SharedPreferences/NSUserDefaults/file) + secrets (Keystore/Keychain) + tokens
+Strings          chữ hiện cho người dùng (lỗi…) theo ngôn ngữ: app đặt → ngôn ngữ hệ thống → EN; en/vi/zh/es, thêm bằng Strings.register
 AppLog           console + RotatingFileSink (xoay vòng, xoá theo tuổi, che mật khẩu/token)
 AppCrypto        mã hoá/giải mã AES-256-GCM, khoá từ mật khẩu (PBKDF2) hoặc khoá thô, SHA-256
 push/            PushManager + PushContract (Taper / qt-depot) + PushNavigation   → docs/push.md
@@ -81,7 +82,7 @@ docs/push.md                           nối FCM cho Android + iOS (kèm mẫu A
 ./gradlew :kit:build                              # máy có Android Studio/Xcode: đủ Android + iOS
 ```
 
-Đã kiểm trên JVM: 45 test (MockEngine, FakeFileSystem, file tạm) — làm mới single-flight, request/lỗi/JSON/404/timeout/thử lại GET, body @Serializable + JWT,
+Đã kiểm trên JVM: 51 test (MockEngine, FakeFileSystem, file tạm) — làm mới single-flight, request/lỗi/JSON/404/timeout/thử lại GET, body @Serializable + JWT,
 lưu trữ bền qua lần mở lại, log xoay vòng + che bí mật, mã hoá (sai khoá/bị sửa đều thất bại, SHA-256 đúng vector chuẩn), push, và bộ sinh theme (oklch→hex đúng).
 
 **Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, Swift), build Android/iOS,

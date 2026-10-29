@@ -76,7 +76,7 @@ class HttpTransport(
     } catch (e: ApiError) {
         Result.failure(e)
     } catch (e: Throwable) {
-        Result.failure(if (isTimeoutError(e)) ApiError(0, "Hết thời gian chờ máy chủ", kind = ErrorKind.Timeout, cause = e) else ApiError(0, "Không kết nối được máy chủ", kind = ErrorKind.Network, cause = e))
+        Result.failure(if (isTimeoutError(e)) ApiError(0, Strings.text(Msg.Timeout), kind = ErrorKind.Timeout, cause = e) else ApiError(0, Strings.text(Msg.NetworkUnreachable), kind = ErrorKind.Network, cause = e))
     }
 
     private suspend fun once(method: String, path: String, body: JsonObject?, bearer: String?, timeoutMs: Long?): RawResponse {
