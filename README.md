@@ -1,44 +1,59 @@
 # kmp_bootstrap
 
-Phần **bắt buộc giống nhau** của mọi app Kotlin Multiplatform (Android + iOS) của mình, tách ra một lần để khỏi chép lại
-giữa Taper, qt-depot và các app sau: gọi API có token, tự làm mới phiên, báo hết phiên, tên miền dự phòng.
+Bộ khung dùng chung cho app Kotlin Multiplatform (Android + iOS): **đủ đồ, cần gì lấy nấy** — giống cách Goravel cho backend.
+Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các module khác không bị kéo vào.
 
-Không UI, không phụ thuộc backend cụ thể. Chỉ thư viện chuẩn của hệ sinh thái Kotlin (Ktor, kotlinx).
+## Chọn module
+
+| Module | Có gì | Kéo theo |
+|---|---|---|
+| `appkit-core` | `Language` (chữ theo ngôn ngữ), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
+| `appkit-network` | `AuthedClient` (JWT tự gắn + tự làm mới phiên), `HttpTransport` (failover, timeout, thử lại GET), `get/post/put/patch/delete`, `ApiError` có phân loại, cache GET, `Endpoints` (một chỗ khai báo đường dẫn), `AppKit.start()` | core + Ktor |
+| `appkit-push` | thông báo đẩy FCM: đăng ký thiết bị, điều hướng khi bấm | network (+ Firebase trên Android) |
+| `appkit-ui` | component Material 3 kiểu shadcn + theme sinh từ CSS của web | Compose, không phụ thuộc module khác |
+
+Chỉ cần mã hoá và log? Lấy `appkit-core` — không có Ktor, không có Firebase (đã kiểm: `samples/core-only`).
+
+## Cài đặt
+
+Chưa phát hành lên Maven; dùng như thư viện nguồn bằng `includeBuild` (đặt repo cạnh app, hoặc thêm làm git submodule):
+
+```kotlin
+// settings.gradle.kts của app
+includeBuild("../kmp_bootstrap")
+
+// build.gradle.kts của module dùng chung (commonMain)
+commonMain.dependencies {
+    implementation("kmp.bootstrap:appkit-network")     // kéo cả appkit-core
+    implementation("kmp.bootstrap:appkit-push")        // tuỳ chọn
+}
+```
+
+Android: gọi `AppKitAndroid.init(context)` một lần ở `Application.onCreate`. iOS: không cần gì thêm (push: xem `docs/push.md`).
+Máy không có Android SDK / Xcode (CI, sandbox): thêm `-PdesktopOnly=true` để chỉ dựng và test bản JVM.
 
 ## Dùng
 
 ```kotlin
-// một lần, lúc khởi động (Android: AppKitAndroid.init(context) trước đó)
+// một lần, lúc khởi động
 AppKit.start(AppKitConfig(name = "my-app", baseUrls = listOf("https://api.example.com"), contract = PlainJsonContract(Endpoints.taper("/api/v2"))))
 
 // ở BẤT KỲ ĐÂU: JWT tự gắn, tự làm mới, body @Serializable, lỗi là ApiError có kind
-val me: User = AppKit.client.get("/api/auth/me")
-val item: Item = AppKit.client.post("/api/items", NewItem("x"))      // put / patch tương tự
-val maybe: Item? = AppKit.client.getOrNull("/api/items/9")            // 404 → null
-AppKit.client.delete("/api/items/9")
-AppKit.refreshSession()                                               // làm mới phiên ngay, gọi từ đâu cũng được
-AppKit.storage.prefs.putBool("dark", true)                            // lưu cục bộ;  AppKit.storage.tokens = token an toàn
-AppLog.i("home", "đã mở")                                             // log ra console + file tự xoay vòng
-val box = AppCrypto.encryptText("bí mật", "mật khẩu")                 // AES-256-GCM
-client.sessionExpired.collect { goToLogin() }                         // refresh token chết thật
+val me: User = AppKit.client.get("/api/v2/auth/me")
+val feed: Feed = AppKit.client.get("/api/v2/feed", cache = CachePolicy.hours(1))   // cache 1 giờ; mất mạng thì trả bản cũ
+val item: Item = AppKit.client.post("/api/v2/items", NewItem("x"))                  // put / patch tương tự
+val maybe: Item? = AppKit.client.getOrNull("/api/v2/items/9")                        // 404 → null
+AppKit.client.delete("/api/v2/items/9")
+AppKit.refreshSession()                                                              // làm mới phiên ngay
+AppKit.storage.prefs.putBool("dark", true)                                           // lưu cục bộ; AppKit.storage.tokens = token an toàn
+AppLog.i("home", "opened")                                                           // console + file tự xoay vòng
+val box = AppCrypto.encryptText("bí mật", "mật khẩu")                                // AES-256-GCM
+val profiles = TtlCache<String, Profile>(1.hours)                                    // cache dùng độc lập, không dính HTTP
+profiles.getOrLoad(userId) { api.profile(userId) }                                   // N nơi gọi cùng lúc chỉ tải một lần
+AppKit.client.sessionExpired.collect { goToLogin() }                                 // refresh token chết thật
 ```
 
 Đăng nhập: `client.raw("POST", AppKit.endpoints.login, body, auth = false)` rồi `client.storeLogin(r)`.
-
-## Các lớp (ghép, không kế thừa)
-
-```
-HttpTransport    gửi request: failover, timeout, thử lại GET, log, phân loại lỗi mạng/timeout      (không biết đăng nhập)
-  └─ AuthedClient   bọc transport: JWT, làm mới trước hạn, 401→làm mới→gửi lại, sessionExpired
-       └─ get/post/put/patch/delete, getOrNull   (Requests.kt)  body @Serializable → JSON, JSON → đối tượng, lỗi → ApiError(kind)
-AppStorage       prefs (SharedPreferences/NSUserDefaults/file) + secrets (Keystore/Keychain) + tokens
-Endpoints        MỘT chỗ khai báo mọi đường dẫn API (preset taper/qtDepot); contract và push chỉ đọc, không tự mang đường dẫn
-Language         chữ hiện cho người dùng (lỗi…) theo ngôn ngữ: app đặt → ngôn ngữ hệ thống → EN; en/vi/zh/es, thêm bằng Language.register
-AppLog           console + RotatingFileSink (xoay vòng, xoá theo tuổi, che mật khẩu hẳn; token giữ 5 ký tự cuối để tra log)
-AppCrypto        mã hoá/giải mã AES-256-GCM, khoá từ mật khẩu (PBKDF2) hoặc khoá thô, SHA-256
-push/            PushManager + PushContract (Taper / qt-depot) + PushNavigation   → docs/push.md
-ui/ (module)     component Material 3 + theme sinh từ CSS shadcn (tools/shadcn-theme.mjs)
-```
 
 ## Nó lo giúp bạn điều gì
 
@@ -46,45 +61,40 @@ ui/ (module)     component Material 3 + theme sinh từ CSS shadcn (tools/shadcn
 |---|---|
 | Gắn `Authorization: Bearer` và `X-App-Id` | tự động |
 | Access token sắp hết hạn (< 2 phút, đọc `exp` của JWT) | làm mới **trước** khi gửi |
-| Server trả "token hết hạn/bị thu hồi" | làm mới rồi **gửi lại đúng 1 lần**, người dùng không thấy lỗi |
-| 8 request 401 cùng lúc | chỉ **một** lần đổi refresh token (refresh dùng một lần; đổi nhiều lần = bị coi là bị đánh cắp và thu hồi cả phiên) |
+| Server trả "token hết hạn/bị thu hồi" | làm mới rồi **gửi lại đúng 1 lần** |
+| 8 request 401 cùng lúc | chỉ **một** lần đổi refresh token (refresh dùng một lần; đổi nhiều lần = bị coi là bị đánh cắp) |
 | Mạng hỏng đúng lúc làm mới | giữ token, lần sau thử lại (không đăng xuất oan) |
-| Refresh token chết thật | xoá token + phát `sessionExpired` |
-| Lỗi tạm khi ĐỌC (timeout, 5xx, 429) | GET tự thử lại (mặc định 1 lần); request GHI không bao giờ tự thử lại — tránh ghi trùng |
-| Mọi thất bại | một `ApiError` có `kind`: Network, Timeout, Unauthorized, Forbidden, NotFound, Invalid, RateLimited, Server, Parse |
-| Tên miền chính sập (DNS) | `Failover(listOf(chính, dựphòng))` thử tên kế tiếp, nhớ tên chạy được |
-| Đăng xuất | `logout()` thu hồi trên server (best-effort) rồi xoá token cục bộ |
+| Refresh token chết thật | xoá token + xoá cache + phát `sessionExpired` |
+| Lỗi tạm khi ĐỌC (timeout, 5xx, 429) | GET tự thử lại (mặc định 1 lần); request GHI không bao giờ tự thử lại (tránh ghi trùng) |
+| Mọi thất bại | một `ApiError` có `kind` (Network, Timeout, Unauthorized, NotFound, Invalid, Server, Parse…), một dòng log kèm `requestId` |
+| Chữ báo lỗi cho người dùng | theo ngôn ngữ: app đặt → hệ thống → EN (en/vi/zh/es); lời của server giữ nguyên |
+| Tên miền chính sập (DNS) | `Failover(listOf(chính, dựphòng))` thử tên kế tiếp |
+| Cache GET (bật theo từng lời gọi) | TTL, bản cũ khi lỗi, ngăn riêng từng người dùng, tự xoá khi ghi, xoá sạch khi đăng xuất |
+| Log | file xoay vòng + xoá theo tuổi; mật khẩu che hẳn, token giữ 5 ký tự cuối để tra |
 
-## Hai kiểu backend, một cơ chế: `AuthContract`
+Hai kiểu backend, một cơ chế: chỗ **duy nhất** khác nhau là `AuthContract` (`PlainJsonContract` kiểu Taper, `EnvelopeContract` kiểu qt-depot) cùng `Endpoints` (đường dẫn). Backend thứ ba: cài `AuthContract` (6 hàm nhỏ).
 
-Chỗ **duy nhất** các backend khác nhau là hợp đồng xác thực. Có sẵn hai bản:
-
-- `PlainJsonContract` — Taper: JSON phẳng `{access_token, refresh_token}`, lỗi là HTTP 401.
-- `EnvelopeContract` — qt-depot: khung `{code, message, data}`, token hết hạn có thể nằm trong HTTP 200 (`Token_Revoked`).
-
-Backend thứ ba: cài `AuthContract` (6 hàm nhỏ) — cơ chế single-flight/thử lại/báo hết phiên không phải viết lại.
-
-## Tệp
+## Cấu trúc
 
 ```
-kit/src/commonMain/kotlin/kmp/bootstrap/appkit/
-  HttpTransport.kt  AuthedClient.kt  Requests.kt  AuthContract.kt  Failover.kt  ApiError.kt
-  Storage.kt  Stores.kt  Log.kt  Crypto.kt  Jwt.kt  AppKit.kt  push/
-kit/src/{desktop,android,ios}Main/…   phần theo nền tảng (expect/actual)
-ui/                                    component Material 3 + theme
-tools/shadcn-theme.mjs                 sinh AppColors sáng/tối từ CSS shadcn (có test: node --test tools/)
-docs/push.md                           nối FCM cho Android + iOS (kèm mẫu AppDelegate.swift)
+appkit-core/      Language  Log  Storage  Stores  Crypto  TtlCache  Jwt
+appkit-network/   HttpTransport  AuthedClient  Requests  Endpoints  AuthContract  Failover  ApiError  Cache  AppKit
+appkit-push/      Push  PushNavigation                       → docs/push.md
+appkit-ui/        Theme  Components
+  mỗi module: src/{commonMain,commonTest,desktopMain,androidMain,iosMain}  (expect/actual cho phần theo nền tảng)
+tools/shadcn-theme.mjs   sinh AppColors sáng/tối từ CSS shadcn (node --test tools/)
+samples/core-only/       app mẫu chỉ lấy appkit-core
+docs/push.md             nối FCM cho Android + iOS (kèm mẫu AppDelegate.swift)
 ```
 
-## Chạy test / build
+## Chạy test
 
 ```sh
-./gradlew -PdesktopOnly=true :kit:desktopTest     # ở máy không có Android SDK (CI, sandbox)
-./gradlew :kit:build                              # máy có Android Studio/Xcode: đủ Android + iOS
+./gradlew -PdesktopOnly=true desktopTest     # JVM — không cần Android SDK/Xcode
+./gradlew build                              # máy có Android Studio/Xcode: đủ Android + iOS
+node --test tools/                           # bộ sinh theme
 ```
 
-Đã kiểm trên JVM: 61 test (MockEngine, FakeFileSystem, file tạm) — làm mới single-flight, request/lỗi/JSON/404/timeout/thử lại GET, body @Serializable + JWT,
-lưu trữ bền qua lần mở lại, log xoay vòng + che bí mật, mã hoá (sai khoá/bị sửa đều thất bại, SHA-256 đúng vector chuẩn), push, và bộ sinh theme (oklch→hex đúng).
-
-**Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, Swift), build Android/iOS,
-và module `ui`: **biên dịch được** (main + test) nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`). Backend thật cũng chưa thử.
+Đã kiểm trên JVM: 77 test (core 29, network 40, push 8) + 3 test bộ sinh theme.
+**Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, Swift), build Android/iOS;
+module `appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.
