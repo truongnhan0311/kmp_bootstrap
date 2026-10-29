@@ -70,8 +70,11 @@ fun AppCard(
     )
 }
 
-/** Biến thể của nút, như `variant` của shadcn Button. */
-enum class ButtonVariant { Default, Outline, Destructive, Ghost }
+/** Biến thể của nút, như `variant` của shadcn/Bootstrap Button. */
+enum class ButtonVariant { Default, Secondary, Outline, Destructive, Ghost, Link }
+
+/** Cỡ nút, như `size`: Sm 13sp · Md 14sp · Lg 16sp. */
+enum class ButtonSize(val font: Int, val padH: Int, val padV: Int) { Sm(13, 12, 7), Md(14, 16, 11), Lg(16, 20, 14) }
 
 @Composable
 fun AppButton(
@@ -79,27 +82,32 @@ fun AppButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     variant: ButtonVariant = ButtonVariant.Default,
+    size: ButtonSize = ButtonSize.Md,
     enabled: Boolean = true,
     busy: Boolean = false,
-    small: Boolean = false,
+    fullWidth: Boolean = false,
+    leading: (@Composable () -> Unit)? = null,
 ) {
     val c = A.colors
     val shape = RoundedCornerShape(10.dp)
-    val bg = if (variant == ButtonVariant.Default) c.primary else Color.Transparent
-    val fg = when (variant) { ButtonVariant.Default -> c.primaryForeground; ButtonVariant.Destructive -> c.destructive; else -> c.foreground }
-    val line = when (variant) { ButtonVariant.Default -> c.primary; ButtonVariant.Destructive -> c.destructive; ButtonVariant.Outline -> c.border; ButtonVariant.Ghost -> Color.Transparent }
+    val bg = when (variant) { ButtonVariant.Default -> c.primary; ButtonVariant.Secondary -> c.secondary; else -> Color.Transparent }
+    val fg = when (variant) {
+        ButtonVariant.Default -> c.primaryForeground; ButtonVariant.Secondary -> c.secondaryForeground
+        ButtonVariant.Destructive -> c.destructive; ButtonVariant.Link -> c.primary; else -> c.foreground
+    }
+    val line = when (variant) { ButtonVariant.Default -> c.primary; ButtonVariant.Destructive -> c.destructive; ButtonVariant.Outline -> c.border; else -> Color.Transparent }
     val alpha = if (enabled && !busy) 1f else 0.5f
     Row(
-        modifier.clip(shape).background(bg.copy(alpha = bg.alpha * alpha)).border(BorderStroke(1.dp, line.copy(alpha = line.alpha * alpha)), shape)
+        (if (fullWidth) modifier.fillMaxWidth() else modifier).clip(shape).background(bg.copy(alpha = bg.alpha * alpha)).border(BorderStroke(1.dp, line.copy(alpha = line.alpha * alpha)), shape)
             .then(if (enabled && !busy) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = if (small) 12.dp else 16.dp, vertical = if (small) 7.dp else 11.dp),
+            .padding(horizontal = size.padH.dp, vertical = size.padV.dp),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
     ) {
         if (busy) {
             CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = fg)
             Box(Modifier.size(8.dp))
-        }
-        Text(text, style = A.type.body.copy(fontSize = if (small) 13.sp else 14.sp), color = fg.copy(alpha = alpha))
+        } else if (leading != null) { leading(); Box(Modifier.size(8.dp)) }
+        Text(text, style = A.type.body.copy(fontSize = size.font.sp), color = fg.copy(alpha = alpha))
     }
 }
 
@@ -237,7 +245,7 @@ fun <T> LoadableView(state: Loadable<T>, onRetry: (() -> Unit)? = null, loadingL
         Loadable.Loading -> Spinner(label = loadingLabel)
         is Loadable.Failed -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             AppAlert(state.message, destructive = true)
-            if (onRetry != null) AppButton(retryLabel, onRetry, variant = ButtonVariant.Outline, small = true)
+            if (onRetry != null) AppButton(retryLabel, onRetry, variant = ButtonVariant.Outline, size = ButtonSize.Sm)
         }
         is Loadable.Ready -> content(state.value)
     }
