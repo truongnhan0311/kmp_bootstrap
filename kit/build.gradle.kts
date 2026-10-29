@@ -36,7 +36,7 @@ kotlin {
         }
         val desktopMain by getting { dependencies { implementation(libs.ktor.client.cio) } }
         if (!desktopOnly) {
-            val androidMain by getting { dependencies { implementation(libs.ktor.client.okhttp); implementation(libs.androidx.security.crypto); implementation(libs.firebase.messaging) } }
+            val androidMain by getting { dependencies { implementation(libs.ktor.client.okhttp); implementation(libs.androidx.security.crypto); implementation(libs.firebase.messaging); implementation(libs.androidx.core) } }
             val iosMain by getting { dependencies { implementation(libs.ktor.client.darwin) } }
         }
     }
