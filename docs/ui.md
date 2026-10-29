@@ -141,6 +141,9 @@ Thêm tab = thêm giá trị vào `StarterTab` + một nhánh `when` ở `Starte
 | Xu hướng | `StarterTrendsPage` | `Segmented`, `LineChart`, `StatGridBlock`, `CtaBlock` |
 | Hồ sơ, Cài đặt | `StarterProfileScreen`, `StarterSettingsScreen` | `Avatar`, `Segmented`, `ListBlock` có mũi tên |
 
+**Dữ liệu mẫu nằm MỘT chỗ:** `StarterData.Dummy` trong `StarterData.kt` (người dùng, buổi tập, chỉ số, lịch, biểu đồ, cú ra sức). Các trang chỉ đọc từ `StarterData`;
+muốn nối dữ liệu thật thì dựng một `StarterData` từ API của bạn và truyền `StarterApp(data = …)` — không phải sửa trang nào. Mặc định luôn là dữ liệu giả, không gọi mạng.
+
 Biểu đồ (`BarChart`, `LineChart` trong `Charts.kt`) chỉ **vẽ** số đã tính sẵn; muốn zoom/dò giá trị thì tự viết thêm trong app.
 
 <!-- snippet: ui-scaffold -->

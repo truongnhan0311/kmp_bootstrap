@@ -15,12 +15,13 @@ import androidx.compose.ui.text.input.KeyboardType
  */
 
 @Composable
-fun StarterLoginPage(onLogin: () -> Unit = {}, onRegister: () -> Unit = {}) = Page {
-    var email by remember { mutableStateOf("") }
+fun StarterLoginPage(data: StarterData = StarterData.Dummy, onLogin: () -> Unit = {}, onRegister: () -> Unit = {}) = Page {
+    var email by remember { mutableStateOf(data.user.email) }
     var password by remember { mutableStateOf("") }
     var failed by remember { mutableStateOf(false) }
     Stack(Modifier.pt(10), gap = 5) {
         HeroBlock("My App", "Đăng nhập để tiếp tục.")
+        // gợi ý email mẫu: data.user.email (chỉ để thấy bố cục)
         if (failed) AppAlert("Sai email hoặc mật khẩu.", destructive = true)
         AppField("Email", email, { email = it }, keyboard = KeyboardType.Email, placeholder = "ban@example.com")
         AppField("Mật khẩu", password, { password = it }, password = true)
@@ -47,26 +48,24 @@ fun StarterRegisterPage(onDone: () -> Unit = {}, onBack: () -> Unit = {}) = Page
 }
 
 @Composable
-fun StarterDetailPage(title: String = "Đạp buổi sáng") = Page {
-    HeroBlock(title, "Thứ Năm 29/10/2026 · 04:26")
+fun StarterDetailPage(data: StarterData = StarterData.Dummy, title: String = data.activities.first().title) = Page {
+    val activity = data.activities.firstOrNull { it.title == title } ?: data.activities.first()
+    HeroBlock(activity.title, "${activity.date}/2026 · ${activity.summary}")
     StatGridBlock(title = "Chỉ số", columns = 2, items = listOf(
         StatItem("Công suất chuẩn hoá", "214 W"), StatItem("Cường độ (IF)", "0,86"),
-        StatItem("TSS", "81", A.colors.primary), StatItem("Nhịp tim TB", "142"),
+        StatItem("TSS", activity.tss.toString(), A.colors.primary), StatItem("Nhịp tim TB", "142"),
     ))
     Section("Thời gian ở từng vùng", hint = "phút") {
-        AppCard { BarChart(listOf(8f, 31f, 22f, 9f, 3f, 0f, 0f), listOf("Z1", "Z2", "Z3", "Z4", "Z5", "Z6", "Z7")) }
+        AppCard { BarChart(data.zoneMinutes, data.zoneMinutes.indices.map { "Z${it + 1}" }) }
     }
-    ListBlock("Các cú ra sức", items = listOf(
-        ListRow("Nước rút", "km 12,4 · 8 giây", trailing = "812 W"),
-        ListRow("Cú giật", "km 21,0 · 45 giây", trailing = "506 W"),
-    ))
+    ListBlock("Các cú ra sức", items = data.efforts.map { ListRow(it.title, it.where, trailing = it.value) })
     Section("Ghi chú của bạn") { AppField("Ghi chú", "", {}, placeholder = "Ví dụ: ngủ ít, gió ngược") ; AppButton("Lưu ghi chú", onClick = {}, variant = ButtonVariant.Outline, size = ButtonSize.Sm) }
 }
 
 @Composable
-fun StarterCalendarPage(onOpen: (String) -> Unit = {}) = Page {
+fun StarterCalendarPage(data: StarterData = StarterData.Dummy, onOpen: (String) -> Unit = {}) = Page {
     var picked by remember { mutableStateOf(29) }
-    val rides = mapOf(1 to 40, 3 to 62, 4 to 95, 6 to 70, 9 to 88, 11 to 130, 15 to 75, 17 to 145, 22 to 92, 24 to 178, 25 to 105, 28 to 40, 29 to 81)
+    val rides = data.rides
     Inline(spread = true) {
         AppIcon(AppIcons.ArrowLeft, size = androidx.compose.ui.unit.Dp(22f), color = A.colors.mutedForeground)
         Txt("Tháng 10, 2026", A.type.section.copy(fontSize = androidx.compose.ui.unit.TextUnit(16f, androidx.compose.ui.unit.TextUnitType.Sp)))
@@ -86,7 +85,7 @@ fun StarterCalendarPage(onOpen: (String) -> Unit = {}) = Page {
         }
     }
     ListBlock("Ngày $picked/10", hint = rides[picked]?.let { "$it TSS" }, empty = "Không có buổi nào",
-        items = if (rides[picked] == null) emptyList() else listOf(ListRow("Đạp buổi sáng", "04:26 · 1h13 · 32 km", trailing = "${rides[picked]} TSS", onClick = { onOpen("Đạp buổi sáng") }, chevron = true)))
+        items = if (rides[picked] == null) emptyList() else data.activities.take(1).map { it.toRow(null).copy(trailing = "${rides[picked]} TSS", onClick = { onOpen(it.title) }, chevron = true) })
 }
 
 @Composable
@@ -94,12 +93,11 @@ private fun Box0(color: androidx.compose.ui.graphics.Color, visible: Boolean) =
     androidx.compose.foundation.layout.Box(Modifier.rounded(Radius.Full).bgColor(if (visible) color else androidx.compose.ui.graphics.Color.Transparent).height(androidx.compose.ui.unit.Dp(4f)).wFull())
 
 @Composable
-fun StarterTrendsPage() = Page {
+fun StarterTrendsPage(data: StarterData = StarterData.Dummy) = Page {
     var range by remember { mutableStateOf(6) }
-    val ctl = listOf(31f, 33f, 36f, 38f, 41f, 40f, 43f); val atl = listOf(45f, 52f, 40f, 58f, 49f, 66f, 61f)
     ScreenHeader("Xu hướng", "Thể lực, mệt mỏi và độ sung của bạn.")
     Segmented(listOf(6 to "6 tuần", 12 to "3 tháng", 26 to "6 tháng"), range, { range = it })
-    AppCard { LineChart(listOf(ChartSeries("Thể lực", ctl, A.colors.primary), ChartSeries("Mệt", atl, A.colors.destructive))) }
-    StatGridBlock(items = listOf(StatItem("Thể lực", "43", A.colors.primary), StatItem("Mệt", "61", A.colors.destructive), StatItem("Độ sung", "−18"), StatItem("Tải tuần này", "121")))
+    AppCard { LineChart(listOf(ChartSeries("Thể lực", data.ctl, A.colors.primary), ChartSeries("Mệt", data.atl, A.colors.destructive))) }
+    StatGridBlock(items = data.trendStats.mapIndexed { i, s -> if (i == 0) s.copy(color = A.colors.primary) else if (i == 1) s.copy(color = A.colors.destructive) else s })
     CtaBlock("Hỏi coach", "Xem nhận xét và kế hoạch 6 tuần tới.", actionLabel = "Hỏi coach", onAction = {})
 }

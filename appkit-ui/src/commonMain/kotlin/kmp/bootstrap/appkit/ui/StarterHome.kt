@@ -32,17 +32,17 @@ sealed interface StarterRoute {
 }
 
 @Composable
-fun StarterHome(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.System, initial: StarterTab = StarterTab.Home) =
-    StarterApp(dark, light, mode, StarterRoute.Main(initial))
+fun StarterHome(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.System, initial: StarterTab = StarterTab.Home, data: StarterData = StarterData.Dummy) =
+    StarterApp(dark, light, mode, StarterRoute.Main(initial), data)
 
 @Composable
-fun StarterApp(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.System, initial: StarterRoute = StarterRoute.Login) {
+fun StarterApp(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.System, initial: StarterRoute = StarterRoute.Login, data: StarterData = StarterData.Dummy) {
     AppTheme(light = light, dark = dark, mode = mode) {
         var route by remember { mutableStateOf(initial) }
         var back by remember { mutableStateOf<StarterRoute>(StarterRoute.Main()) }   // trang con quay lại đâu
         fun open(r: StarterRoute) { if (route is StarterRoute.Main) back = route; route = r }
         when (val r = route) {
-            StarterRoute.Login -> AppScaffold { StarterLoginPage(onLogin = { route = StarterRoute.Main() }, onRegister = { route = StarterRoute.Register }) }
+            StarterRoute.Login -> AppScaffold { StarterLoginPage(data, onLogin = { route = StarterRoute.Main() }, onRegister = { route = StarterRoute.Register }) }
             StarterRoute.Register -> AppScaffold { StarterRegisterPage(onDone = { route = StarterRoute.Main() }, onBack = { route = StarterRoute.Login }) }
             else -> {
                 val tab = (r as? StarterRoute.Main)?.tab ?: (back as? StarterRoute.Main)?.tab ?: StarterTab.Home
@@ -61,15 +61,15 @@ fun StarterApp(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.Sy
                 ) {
                     when (r) {
                         is StarterRoute.Main -> when (r.tab) {
-                            StarterTab.Home -> StarterHomeScreen(::open) { route = StarterRoute.Main(it) }
-                            StarterTab.Activities -> StarterActivitiesScreen { open(StarterRoute.Detail(it)) }
-                            StarterTab.Search -> StarterSearchScreen { open(StarterRoute.Detail(it)) }
-                            StarterTab.Profile -> StarterProfileScreen()
+                            StarterTab.Home -> StarterHomeScreen(data, ::open) { route = StarterRoute.Main(it) }
+                            StarterTab.Activities -> StarterActivitiesScreen(data) { open(StarterRoute.Detail(it)) }
+                            StarterTab.Search -> StarterSearchScreen(data) { open(StarterRoute.Detail(it)) }
+                            StarterTab.Profile -> StarterProfileScreen(data)
                             StarterTab.Settings -> StarterSettingsScreen()
                         }
-                        is StarterRoute.Detail -> StarterDetailPage(r.title)
-                        StarterRoute.Calendar -> StarterCalendarPage { open(StarterRoute.Detail(it)) }
-                        StarterRoute.Trends -> StarterTrendsPage()
+                        is StarterRoute.Detail -> StarterDetailPage(data, r.title)
+                        StarterRoute.Calendar -> StarterCalendarPage(data) { open(StarterRoute.Detail(it)) }
+                        StarterRoute.Trends -> StarterTrendsPage(data)
                         else -> Unit
                     }
                 }
@@ -78,66 +78,56 @@ fun StarterApp(dark: AppColors, light: AppColors, mode: ThemeMode = ThemeMode.Sy
     }
 }
 
-private val recent = listOf(
-    ListRow("Đạp buổi sáng", "29/10 · 1h13 · 32 km", trailing = "81 TSS", icon = AppIcons.Calendar),
-    ListRow("Đạp nhóm Thủ Đức", "27/10 · 2h05 · 61 km", trailing = "142 TSS", icon = AppIcons.Calendar),
-    ListRow("Hồi phục", "26/10 · 45 phút · 15 km", trailing = "28 TSS", icon = AppIcons.Calendar),
-)
-
 /** Gắn hành động mở chi tiết vào các hàng. */
 private fun List<ListRow>.opening(onOpen: (String) -> Unit) = map { r -> r.copy(onClick = { onOpen(r.title) }, chevron = true) }
 
 @Composable
-fun StarterHomeScreen(open: (StarterRoute) -> Unit = {}, goTab: (StarterTab) -> Unit = {}) = Page {
-    HeroBlock("Chào buổi sáng", "Hôm nay bạn muốn làm gì?", action = { AppButton("Bắt đầu", onClick = {}, icon = AppIcons.Plus) })
-    StatGridBlock(title = "Tuần này", items = listOf(
-        StatItem("Buổi tập", "4"), StatItem("Tổng thời gian", "5h20"),
-        StatItem("Thể lực", "43", A.colors.primary), StatItem("Mệt", "61", A.colors.destructive),
-    ))
+fun StarterHomeScreen(data: StarterData = StarterData.Dummy, open: (StarterRoute) -> Unit = {}, goTab: (StarterTab) -> Unit = {}) = Page {
+    HeroBlock(data.greeting, "Hôm nay bạn muốn làm gì?", action = { AppButton("Bắt đầu", onClick = {}, icon = AppIcons.Plus) })
+    StatGridBlock(title = "Tuần này", items = data.weekStats.mapIndexed { i, s -> if (i == 2) s.copy(color = A.colors.primary) else if (i == 3) s.copy(color = A.colors.destructive) else s })
     FeatureGridBlock(title = "Lối tắt", items = listOf(
         Feature("Lịch", "Xem các buổi theo ngày", icon = AppIcons.Calendar, onClick = { open(StarterRoute.Calendar) }),
         Feature("Xu hướng", "Biểu đồ 6 tuần", icon = AppIcons.Chart, onClick = { open(StarterRoute.Trends) }),
         Feature("Tìm kiếm", "Theo tên hoặc thẻ", icon = AppIcons.Search, onClick = { goTab(StarterTab.Search) }),
         Feature("Nhắc giờ", "Đặt lịch tập", icon = AppIcons.Bell),
     ))
-    ListBlock("Gần đây", hint = "mới nhất trước", items = recent.opening { open(StarterRoute.Detail(it)) })
+    ListBlock("Gần đây", hint = "mới nhất trước", items = data.activities.take(3).map { it.toRow() }.opening { open(StarterRoute.Detail(it)) })
     CtaBlock("Nối nguồn dữ liệu", "Buổi tập sẽ tự về, không cần nhập tay.", actionLabel = "Nối ngay", onAction = {})
 }
 
 @Composable
-fun StarterActivitiesScreen(onOpen: (String) -> Unit = {}) = Page {
+fun StarterActivitiesScreen(data: StarterData = StarterData.Dummy, onOpen: (String) -> Unit = {}) = Page {
     ScreenHeader("Hoạt động của tôi", "Các buổi đã đạp, mới nhất trước.")
-    ListBlock("Tháng 10", hint = "12 buổi", items = (recent + recent.map { it.copy(title = it.title + " (2)") }).opening(onOpen))
+    ListBlock("Tháng 10", hint = "${data.activities.size} buổi", items = data.activities.map { it.toRow() }.opening(onOpen))
     ListBlock("Tháng 9", items = emptyList(), empty = "Chưa có buổi nào")
 }
 
 @Composable
-fun StarterSearchScreen(onOpen: (String) -> Unit = {}) = Page {
+fun StarterSearchScreen(data: StarterData = StarterData.Dummy, onOpen: (String) -> Unit = {}) = Page {
     var query by remember { mutableStateOf("") }
     ScreenHeader("Tìm kiếm", "Theo tên hoặc thẻ của buổi tập.")
     AppField(label = "Từ khoá", value = query, onChange = { query = it }, placeholder = "ví dụ: đạp nhóm")
     if (query.isBlank()) {
-        Section("Gần đây") { BadgesBlock(listOf("đạp nhóm", "hồi phục", "Thủ Đức", "interval")) }
+        Section("Gần đây") { BadgesBlock(data.searchHistory) }
     } else {
-        val hits = recent.filter { it.title.contains(query, ignoreCase = true) }
+        val hits = data.activities.filter { it.title.contains(query, ignoreCase = true) }.map { it.toRow() }
         if (hits.isEmpty()) EmptyState("Không thấy “$query”", message = "Thử từ khoá khác hoặc bớt chữ.") else ListBlock("Kết quả", hint = "${hits.size} buổi", items = hits.opening(onOpen))
     }
 }
 
 @Composable
-fun StarterProfileScreen() = Page {
+fun StarterProfileScreen(data: StarterData = StarterData.Dummy) = Page {
     Inline(gap = 4) {
-        Avatar("Nhan Nguyen", size = 56)
-        Stack(gap = 0) { Txt("Nhan Nguyen", A.type.section.copy(fontSize = androidx.compose.ui.unit.TextUnit(17f, androidx.compose.ui.unit.TextUnitType.Sp))); Muted("nhan@example.com") }
+        Avatar(data.user.name, size = 56)
+        Stack(gap = 0) { Txt(data.user.name, A.type.section.copy(fontSize = androidx.compose.ui.unit.TextUnit(17f, androidx.compose.ui.unit.TextUnitType.Sp))); Muted(data.user.email) }
     }
-    StatGridBlock(title = "Chỉ số của bạn", items = listOf(StatItem("FTP", "250 W"), StatItem("Cân nặng", "71,5 kg"), StatItem("W/kg", "3,5", A.colors.primary), StatItem("Nhịp tim ngưỡng", "168")))
+    StatGridBlock(title = "Chỉ số của bạn", items = data.profileStats.mapIndexed { i, s -> if (i == 2) s.copy(color = A.colors.primary) else s })
     ListBlock("Tài khoản", items = listOf(
         ListRow("Thông tin cá nhân", icon = AppIcons.User, chevron = true),
         ListRow("Nguồn dữ liệu", icon = AppIcons.Chart, chevron = true),
         ListRow("Thông báo", icon = AppIcons.Bell, chevron = true),
     ))
 }
-
 
 @Composable
 fun StarterSettingsScreen() = Page {
