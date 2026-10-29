@@ -25,6 +25,8 @@ kotlin {
             api(libs.kotlinx.datetime)
             api(libs.ktor.client.core)
             api(libs.okio)
+            api(libs.cryptography.core)
+            implementation(libs.cryptography.optimal)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -34,7 +36,7 @@ kotlin {
         }
         val desktopMain by getting { dependencies { implementation(libs.ktor.client.cio) } }
         if (!desktopOnly) {
-            val androidMain by getting { dependencies { implementation(libs.ktor.client.okhttp); implementation(libs.androidx.security.crypto) } }
+            val androidMain by getting { dependencies { implementation(libs.ktor.client.okhttp); implementation(libs.androidx.security.crypto); implementation(libs.firebase.messaging) } }
             val iosMain by getting { dependencies { implementation(libs.ktor.client.darwin) } }
         }
     }
