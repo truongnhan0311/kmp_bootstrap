@@ -7,7 +7,8 @@ package kmp.bootstrap.appkit
  *   3. nếu chưa có bản dịch cho ngôn ngữ đó → tiếng Anh ("en"), luôn đầy đủ
  *
  * App có chuỗi riêng thì thêm/ghi đè:  Strings.register("fr", mapOf(Msg.Timeout to "Délai dépassé"))
- * Chỉ chuỗi hướng tới người dùng được dịch. Thông báo lập trình viên (require/check, AppLog) giữ tiếng Anh/tiếng Việt cố định.
+ * Chỉ chuỗi hướng tới NGƯỜI DÙNG được dịch. Dòng log và thông báo cho lập trình viên (require/check) cố định bằng tiếng Anh: log do người
+ * phát triển/hỗ trợ đọc và grep, nên cùng một sự kiện phải ra cùng một câu trên mọi máy, bất kể ngôn ngữ người dùng.
  */
 enum class Msg {
     NetworkUnreachable, Timeout, Unauthorized, Forbidden, NotFound, Conflict, Invalid, RateLimited, Server, Parse, Other,

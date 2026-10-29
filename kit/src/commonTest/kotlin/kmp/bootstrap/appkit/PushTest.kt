@@ -27,9 +27,9 @@ class PushTest {
 
     private class Calls { val seen = mutableListOf<Triple<HttpMethod, String, String>>() }
 
-    private fun manager(calls: Calls, prefs: KeyValueStore = MemoryKeyValueStore(), token: String? = "fcm1", status: HttpStatusCode = HttpStatusCode.OK, contract: kmp.bootstrap.appkit.push.PushContract = DevicesPushContract()): PushManager {
+    private fun manager(calls: Calls, prefs: KeyValueStore = MemoryKeyValueStore(), token: String? = "fcm1", status: HttpStatusCode = HttpStatusCode.OK, contract: kmp.bootstrap.appkit.push.PushContract = DevicesPushContract(Endpoints.taper())): PushManager {
         val engine = MockEngine { req -> calls.seen += Triple(req.method, req.url.encodedPath, req.body.toByteArray().decodeToString()); respond("{}", status) }
-        val client = AuthedClient("https://x.test", MemoryTokenStore("a", "r"), PlainJsonContract(), "app", engine, refreshMarginSeconds = 0)
+        val client = AuthedClient("https://x.test", MemoryTokenStore("a", "r"), PlainJsonContract(TEST_PLAIN), "app", engine, refreshMarginSeconds = 0)
         return PushManager(client, prefs, contract, appVersion = "1.0", tokenSource = PushTokenSource { token }, device = device)
     }
 
@@ -70,7 +70,7 @@ class PushTest {
     }
 
     @Test fun legacyContractMatchesDepotShapeAndHasNoUnregisterCall() = runTest {
-        val calls = Calls(); val c = LegacyPushContract(appKey = "qt-depot", appName = "QT Depot", buildNumber = "7")
+        val calls = Calls(); val c = LegacyPushContract(Endpoints.qtDepot(), appKey = "qt-depot", appName = "QT Depot", buildNumber = "7")
         val m = manager(calls, contract = c)
         m.registerIfNeeded(); m.unregister()
         assertEquals(1, calls.seen.size, "depot gỡ qua /logout, không có endpoint riêng")

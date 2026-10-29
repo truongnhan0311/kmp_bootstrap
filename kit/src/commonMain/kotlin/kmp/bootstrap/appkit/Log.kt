@@ -15,8 +15,9 @@ import okio.buffer
 import okio.use
 
 /*
- * Log dùng ở bất kỳ đâu:   AppLog.i("auth", "đã làm mới phiên")
+ * Log dùng ở bất kỳ đâu:   AppLog.i("auth", "session refreshed")
  * Bật một lần lúc khởi động:  AppLog.install(ConsoleSink(), RotatingFileSink(platformLogDir("my-app")))
+ * Dòng log luôn bằng TIẾNG ANH cố định (không theo ngôn ngữ người dùng) để grep/đối chiếu được giữa các máy.
  * File log tự xoay vòng (xem RotatingFileSink) nên không bao giờ phình vô hạn trên máy người dùng.
  */
 

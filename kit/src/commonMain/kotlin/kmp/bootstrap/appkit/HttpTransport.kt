@@ -64,7 +64,7 @@ class HttpTransport(
                 outcome.getOrNull()?.status.let { it == 429 || (it != null && it in 500..599) })
             if (!retry) return outcome.getOrThrow()
             attempt++
-            AppLog.w("http", "$method $path thử lại lần $attempt")
+            AppLog.w("http", "$method $path retry #$attempt")
             delay(backoffMs * attempt)
         }
     }

@@ -1,6 +1,7 @@
 package kmp.bootstrap.appkit.push
 
 import kmp.bootstrap.appkit.AppLog
+import kmp.bootstrap.appkit.Endpoints
 import kmp.bootstrap.appkit.AuthedClient
 import kmp.bootstrap.appkit.KeyValueStore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,10 +63,11 @@ interface PushContract {
 }
 
 /**
- * Hợp đồng của Taper: `PUT /api/v2/me/devices {device_id, token, platform, device_name, app_version, enabled}`,
- * gỡ bằng `DELETE /api/v2/me/devices/{device_id}`. Khoá theo `(app, device_id)` ở server.
+ * Hợp đồng của Taper: `PUT {endpoints.devices} {device_id, token, platform, device_name, app_version, enabled}`,
+ * gỡ bằng `DELETE {endpoints.devices}/{device_id}`. Khoá theo `(app, device_id)` ở server.
  */
-class DevicesPushContract(private val base: String = "/api/v2/me/devices") : PushContract {
+class DevicesPushContract(private val endpoints: Endpoints) : PushContract {
+    private val base get() = endpoints.requireDevices()
     override fun register(r: PushRegistration) = PushCall("PUT", base, buildJsonObject {
         put("device_id", JsonPrimitive(r.deviceId)); put("token", JsonPrimitive(r.token))
         put("platform", JsonPrimitive(r.device.platform)); put("device_name", JsonPrimitive(r.device.name))
@@ -75,11 +77,11 @@ class DevicesPushContract(private val base: String = "/api/v2/me/devices") : Pus
 }
 
 /**
- * Hợp đồng kiểu qt-depot: `POST {path}` với `{token, device_name, device_model, os, version, platform, app_name, app_version,
+ * Hợp đồng kiểu qt-depot: `POST {endpoints.devices}` với `{token, device_name, device_model, os, version, platform, app_name, app_version,
  * build_number, app, device_id}`; không có endpoint gỡ riêng (server gỡ khi `/logout` nhận `device_id`) nên `unregister` là no-op.
  */
-class LegacyPushContract(private val path: String = "/push", private val appKey: String, private val appName: String, private val buildNumber: String = "") : PushContract {
-    override fun register(r: PushRegistration) = PushCall("POST", path, buildJsonObject {
+class LegacyPushContract(private val endpoints: Endpoints, private val appKey: String, private val appName: String, private val buildNumber: String = "") : PushContract {
+    override fun register(r: PushRegistration) = PushCall("POST", endpoints.requireDevices(), buildJsonObject {
         fun s(k: String, v: String) = put(k, JsonPrimitive(v))
         s("token", r.token); s("device_name", r.device.name); s("device_model", r.device.model); s("os", r.device.os); s("version", r.device.os)
         s("platform", r.device.platform); s("app_name", appName); s("app_version", r.appVersion); s("build_number", buildNumber); s("app", appKey); s("device_id", r.deviceId)
@@ -125,11 +127,11 @@ class PushManager(
 
     private suspend fun send(call: PushCall): Boolean = try {
         val r = client.raw(call.method, call.path, call.body)
-        (r.status in 200..299).also { if (!it) AppLog.w("push", "server từ chối đăng ký thông báo (HTTP ${r.status})") }
+        (r.status in 200..299).also { if (!it) AppLog.w("push", "server rejected push registration (HTTP ${r.status})") }
     } catch (e: CancellationException) {
         throw e
     } catch (e: Throwable) {
-        AppLog.w("push", "không đăng ký được thông báo", e); false
+        AppLog.w("push", "push registration failed", e); false
     }
 
     private companion object { const val KEY_REGISTERED = "push.registered" }

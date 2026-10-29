@@ -9,7 +9,7 @@ Không UI, không phụ thuộc backend cụ thể. Chỉ thư viện chuẩn c�
 
 ```kotlin
 // một lần, lúc khởi động (Android: AppKitAndroid.init(context) trước đó)
-AppKit.start(AppKitConfig(name = "my-app", baseUrls = listOf("https://api.example.com"), contract = PlainJsonContract()))
+AppKit.start(AppKitConfig(name = "my-app", baseUrls = listOf("https://api.example.com"), contract = PlainJsonContract(Endpoints.taper("/api/v2"))))
 
 // ở BẤT KỲ ĐÂU: JWT tự gắn, tự làm mới, body @Serializable, lỗi là ApiError có kind
 val me: User = AppKit.client.get("/api/auth/me")
@@ -23,7 +23,7 @@ val box = AppCrypto.encryptText("bí mật", "mật khẩu")                 // 
 client.sessionExpired.collect { goToLogin() }                         // refresh token chết thật
 ```
 
-Đăng nhập: `client.raw("POST", "/api/auth/login", body, auth = false)` rồi `client.storeLogin(r)`.
+Đăng nhập: `client.raw("POST", AppKit.endpoints.login, body, auth = false)` rồi `client.storeLogin(r)`.
 
 ## Các lớp (ghép, không kế thừa)
 
@@ -32,6 +32,7 @@ HttpTransport    gửi request: failover, timeout, thử lại GET, log, phân l
   └─ AuthedClient   bọc transport: JWT, làm mới trước hạn, 401→làm mới→gửi lại, sessionExpired
        └─ get/post/put/patch/delete, getOrNull   (Requests.kt)  body @Serializable → JSON, JSON → đối tượng, lỗi → ApiError(kind)
 AppStorage       prefs (SharedPreferences/NSUserDefaults/file) + secrets (Keystore/Keychain) + tokens
+Endpoints        MỘT chỗ khai báo mọi đường dẫn API (preset taper/qtDepot); contract và push chỉ đọc, không tự mang đường dẫn
 Strings          chữ hiện cho người dùng (lỗi…) theo ngôn ngữ: app đặt → ngôn ngữ hệ thống → EN; en/vi/zh/es, thêm bằng Strings.register
 AppLog           console + RotatingFileSink (xoay vòng, xoá theo tuổi, che mật khẩu hẳn; token giữ 5 ký tự cuối để tra log)
 AppCrypto        mã hoá/giải mã AES-256-GCM, khoá từ mật khẩu (PBKDF2) hoặc khoá thô, SHA-256
@@ -82,7 +83,7 @@ docs/push.md                           nối FCM cho Android + iOS (kèm mẫu A
 ./gradlew :kit:build                              # máy có Android Studio/Xcode: đủ Android + iOS
 ```
 
-Đã kiểm trên JVM: 57 test (MockEngine, FakeFileSystem, file tạm) — làm mới single-flight, request/lỗi/JSON/404/timeout/thử lại GET, body @Serializable + JWT,
+Đã kiểm trên JVM: 61 test (MockEngine, FakeFileSystem, file tạm) — làm mới single-flight, request/lỗi/JSON/404/timeout/thử lại GET, body @Serializable + JWT,
 lưu trữ bền qua lần mở lại, log xoay vòng + che bí mật, mã hoá (sai khoá/bị sửa đều thất bại, SHA-256 đúng vector chuẩn), push, và bộ sinh theme (oklch→hex đúng).
 
 **Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, Swift), build Android/iOS,

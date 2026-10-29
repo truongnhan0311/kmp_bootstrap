@@ -16,8 +16,10 @@ data class TokenPair(val access: String, val refresh: String?)
  * là "token bị từ chối". Phần cơ chế (single-flight, thử lại, báo hết phiên) nằm ở [AuthedClient] và dùng chung.
  */
 interface AuthContract {
-    val refreshPath: String
-    val logoutPath: String
+    /** Đường dẫn API — khai báo MỘT chỗ ở [Endpoints], contract chỉ đọc. */
+    val endpoints: Endpoints
+    val refreshPath: String get() = endpoints.refresh
+    val logoutPath: String get() = endpoints.logout
     fun refreshBody(refreshToken: String): JsonObject
     fun logoutBody(refreshToken: String?, all: Boolean): JsonObject
     /** Đọc cặp token từ phản hồi đăng nhập/đăng ký/làm mới; null nếu không phải phản hồi thành công. */
@@ -28,9 +30,8 @@ interface AuthContract {
     fun isRefreshDead(status: Int, body: String): Boolean
     /** Câu báo lỗi do SERVER viết trong phản hồi lỗi; null nếu không có (khi đó kit dùng câu mặc định theo ngôn ngữ). */
     fun errorMessage(status: Int, body: String): String?
-    /** Đường đăng nhập/làm mới/đăng xuất không tự làm mới (tránh vòng lặp). */
-    fun isAuthPath(path: String): Boolean =
-        path.endsWith("/login") || path.endsWith("/register") || path.contains("/refresh") || path.endsWith("/logout")
+    /** Đường đăng nhập/đăng ký/làm mới/đăng xuất không tự làm mới (tránh vòng lặp) — so khớp với [Endpoints], không đoán theo tên. */
+    fun isAuthPath(path: String): Boolean = path.substringBefore('?') in endpoints.authPaths
 }
 
 private fun JsonObject.str(vararg keys: String): String? =
@@ -44,10 +45,7 @@ private fun parseObject(body: String): JsonObject? = try {
  * Kiểu của Taper: JSON phẳng `{access_token|token, refresh_token}`, lỗi là HTTP 401/4xx kèm `{message, code}`.
  * `code:"refresh_invalid"` hoặc 401 khi làm mới = phiên chết.
  */
-class PlainJsonContract(
-    override val refreshPath: String = "/api/auth/refresh",
-    override val logoutPath: String = "/api/auth/logout",
-) : AuthContract {
+class PlainJsonContract(override val endpoints: Endpoints) : AuthContract {
     override fun refreshBody(refreshToken: String) = buildJsonObject { put("refresh_token", refreshToken) }
     override fun logoutBody(refreshToken: String?, all: Boolean) = buildJsonObject { put("refresh_token", refreshToken ?: ""); put("all", all) }
 
@@ -68,8 +66,7 @@ class PlainJsonContract(
  * `data`. Token hết hạn: `code == 401` hoặc thông điệp kiểu `Token_Revoked`.
  */
 class EnvelopeContract(
-    override val refreshPath: String = "/api/v5/refresh/token",
-    override val logoutPath: String = "/api/v5/logout",
+    override val endpoints: Endpoints,
     /** Trường thêm vào thân làm mới/đăng xuất (qt-depot gửi `app`, `platform`). */
     private val extra: Map<String, String> = emptyMap(),
 ) : AuthContract {

@@ -129,8 +129,8 @@ class AuthedClient(
         }
         val pair = contract.parseTokens(r.status, r.body)
         when {
-            pair != null -> { tokens.save(pair.access, pair.refresh); AppLog.i("auth", "đã làm mới phiên"); true }
-            contract.isRefreshDead(r.status, r.body) -> { AppLog.w("auth", "refresh token đã chết (HTTP ${r.status}) — cần đăng nhập lại"); tokens.clear(); _sessionExpired.tryEmit(Unit); false }
+            pair != null -> { tokens.save(pair.access, pair.refresh); AppLog.i("auth", "session refreshed"); true }
+            contract.isRefreshDead(r.status, r.body) -> { AppLog.w("auth", "refresh token is dead (HTTP ${r.status}) - sign-in required"); tokens.clear(); _sessionExpired.tryEmit(Unit); false }
             else -> false
         }
     }

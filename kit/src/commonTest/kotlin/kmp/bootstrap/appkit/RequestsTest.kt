@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
 class RequestsTest {
     private val json = headersOf(HttpHeaders.ContentType, "application/json")
     private fun client(retries: Int = 1, handler: suspend io.ktor.client.engine.mock.MockRequestHandleScope.(io.ktor.client.request.HttpRequestData) -> io.ktor.client.request.HttpResponseData) =
-        AuthedClient(HttpTransport("https://x.test", "app", MockEngine(handler), getRetries = retries, backoffMs = 0), MemoryTokenStore("a", "r"), PlainJsonContract(), refreshMarginSeconds = 0)
+        AuthedClient(HttpTransport("https://x.test", "app", MockEngine(handler), getRetries = retries, backoffMs = 0), MemoryTokenStore("a", "r"), PlainJsonContract(TEST_PLAIN), refreshMarginSeconds = 0)
 
     @Test fun decodesJsonAndIgnoresUnknownFields() = runTest {
         val c = client { respond("""{"id":1,"name":"x","extra":true}""", HttpStatusCode.OK, json) }
@@ -80,7 +80,7 @@ class RequestsTest {
 
     @Test fun errorMessageComesFromTheBackendContract() = runTest {
         val c = AuthedClient(HttpTransport("https://x.test", "app", MockEngine { respond("""{"code":400,"message":"wrong_password","data":""}""", HttpStatusCode.BadRequest, json) }, getRetries = 0),
-            MemoryTokenStore(), EnvelopeContract(), refreshMarginSeconds = 0)
+            MemoryTokenStore(), EnvelopeContract(Endpoints.qtDepot()), refreshMarginSeconds = 0)
         assertEquals("wrong_password", assertFailsWith<ApiError> { c.post<Item>("/login", auth = false) }.message)
     }
 }
@@ -96,7 +96,7 @@ class TypedBodyTest {
             seen += Triple(req.method.value, req.headers[HttpHeaders.Authorization], req.body.toString().let { (req.body as? io.ktor.http.content.TextContent)?.text ?: it })
             respond("""{"id":7,"name":"ok"}""", HttpStatusCode.OK, json)
         }
-        val c = AuthedClient(HttpTransport("https://x.test", "app", engine), MemoryTokenStore("jwt1", "r"), PlainJsonContract(), refreshMarginSeconds = 0)
+        val c = AuthedClient(HttpTransport("https://x.test", "app", engine), MemoryTokenStore("jwt1", "r"), PlainJsonContract(TEST_PLAIN), refreshMarginSeconds = 0)
         val a: Item = c.post("/i", NewItem("x", listOf("a")))
         val b: Item = c.put("/i/7", NewItem("y"))
         val p: Item = c.patch("/i/7", NewItem("z"))
@@ -117,7 +117,7 @@ class TypedBodyTest {
                 else -> respond("{}", HttpStatusCode.Unauthorized, json)
             }
         }
-        val c = AuthedClient(HttpTransport("https://x.test", "app", engine), MemoryTokenStore("expired", "r1"), PlainJsonContract(), refreshMarginSeconds = 0)
+        val c = AuthedClient(HttpTransport("https://x.test", "app", engine), MemoryTokenStore("expired", "r1"), PlainJsonContract(TEST_PLAIN), refreshMarginSeconds = 0)
         val saved: Item = c.post("/items", NewItem("x"))
         assertEquals("saved", saved.name); assertEquals(1, refreshes); assertEquals(1, posts, "ghi đúng một lần sau khi làm mới")
     }
@@ -130,7 +130,7 @@ class FailureLoggingTest {
     @kotlin.test.AfterTest fun release() { AppLog.install() }
 
     private fun client(handler: suspend io.ktor.client.engine.mock.MockRequestHandleScope.(io.ktor.client.request.HttpRequestData) -> io.ktor.client.request.HttpResponseData) =
-        AuthedClient(HttpTransport("https://x.test", "app", MockEngine(handler), getRetries = 0), MemoryTokenStore("a", "r"), PlainJsonContract(), refreshMarginSeconds = 0)
+        AuthedClient(HttpTransport("https://x.test", "app", MockEngine(handler), getRetries = 0), MemoryTokenStore("a", "r"), PlainJsonContract(TEST_PLAIN), refreshMarginSeconds = 0)
 
     @Test fun serverErrorIsLoggedAsWarnWithRequestIdAndKind() = runTest {
         val c = client { respond("""{"message":"boom"}""", HttpStatusCode.InternalServerError, headersOf(HttpHeaders.ContentType to listOf("application/json"), "X-Request-Id" to listOf("req-42"))) }

@@ -39,7 +39,7 @@ object AppCrypto {
     suspend fun decrypt(box: ByteArray, key: ByteArray): ByteArray = try {
         cipherOf(key).decrypt(box)
     } catch (e: Exception) {
-        AppLog.w("crypto", "decrypt failed (${e::class.simpleName})") // không ghi khoá/dữ liệu
+        AppLog.w("crypto", "decrypt failed (${e::class.simpleName})") // never log key or data
         throw CryptoError(Strings.text(Msg.DecryptFailed), e)
     }
 

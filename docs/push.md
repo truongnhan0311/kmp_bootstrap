@@ -11,14 +11,14 @@ Mẫu lấy từ qt-depot (`QtDepotMessagingService`, `AppDelegate.swift`) và T
 
 ## Dùng trong app (common)
 ```kotlin
-val push = PushManager(AppKit.client, AppKit.storage.prefs, DevicesPushContract(), appVersion = "1.0")
+val push = PushManager(AppKit.client, AppKit.storage.prefs, DevicesPushContract(Endpoints.taper()), appVersion = "1.0")
 push.registerIfNeeded(userKey = user.id)   // sau đăng nhập và mỗi lần mở app — chỉ gọi server khi token/người dùng đổi
 push.unregister()                           // TRƯỚC khi đăng xuất
 // điều hướng khi bấm thông báo:
 val target by PushNavigation.target.collectAsState()
 LaunchedEffect(target) { target?.let { navigate(it.type, it.id); PushNavigation.consumed() } }
 ```
-Backend kiểu qt-depot: thay `DevicesPushContract()` bằng `LegacyPushContract(appKey = "qt-depot", appName = "QT Depot")`.
+Backend kiểu qt-depot: thay `DevicesPushContract(Endpoints.taper())` bằng `LegacyPushContract(Endpoints.qtDepot(), appKey = "qt-depot", appName = "QT Depot")`.
 Backend khác: cài `PushContract` (2 hàm: đăng ký, gỡ).
 
 ## Android

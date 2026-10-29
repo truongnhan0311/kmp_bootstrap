@@ -6,13 +6,13 @@ import io.ktor.client.engine.HttpClientEngine
  * Cửa vào toàn cục, để gọi từ BẤT KỲ ĐÂU trong app mà không phải truyền đối tượng qua từng màn:
  *
  *     // một lần, lúc khởi động
- *     AppKit.start(AppKitConfig(name = "my-app", baseUrls = listOf("https://api.example.com"), contract = PlainJsonContract()))
+ *     AppKit.start(AppKitConfig(name = "my-app", baseUrls = listOf("https://api.example.com"), contract = PlainJsonContract(Endpoints.taper())))
  *
  *     // ở đâu cũng được
  *     AppKit.client.send("GET", "/api/me") { … }
  *     AppKit.refreshSession()          // làm mới phiên ngay
  *     AppKit.storage.prefs.putBool("dark", true)
- *     AppLog.i("home", "đã mở")
+ *     AppLog.i("home", "opened")
  *
  * Test hoặc app muốn tự quản lý thì bỏ qua `AppKit`, dùng thẳng `AuthedClient` / `AppStorage`.
  */
@@ -29,13 +29,17 @@ object AppKit {
     private var _client: AuthedClient? = null
     private var _storage: AppStorage? = null
     private var _fileLog: RotatingFileSink? = null
+    private var _endpoints: Endpoints? = null
 
     val client: AuthedClient get() = _client ?: error("Call AppKit.start(...) first")
+    /** Đường dẫn API của app — lấy từ đây thay vì gõ chuỗi ở từng nơi. */
+    val endpoints: Endpoints get() = _endpoints ?: error("Call AppKit.start(...) first")
     val storage: AppStorage get() = _storage ?: error("Call AppKit.start(...) first")
 
     fun start(config: AppKitConfig) {
         val storage = AppStorage(config.name)
         _storage = storage
+        _endpoints = config.contract.endpoints
         val sinks = mutableListOf<LogSink>(ConsoleSink())
         if (config.logToFile) runCatching { RotatingFileSink(platformLogDir(config.name)).also { _fileLog = it; sinks += it } }
         AppLog.install(*sinks.toTypedArray())

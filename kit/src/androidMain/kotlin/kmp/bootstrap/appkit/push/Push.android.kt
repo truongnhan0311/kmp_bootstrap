@@ -66,7 +66,7 @@ object AppKitPush {
 class AppKitMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         PushTokens.set(token)
-        AppLog.d("push", "có token FCM mới")
+        AppLog.d("push", "new FCM token received")
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
