@@ -3,6 +3,7 @@
 Phiên bản theo `0.x`: API còn có thể đổi, mỗi thay đổi phá API được ghi ở đây.
 
 ## 0.1.0
+- **Sửa lỗi build trên Mac/CI** (phát hiện khi dựng Taper trên Codemagic, 02–03/11/2026; không lộ ra ở `-PdesktopOnly=true`): (1) mọi `*/android.gradle.kts` gọi thẳng `com.android.build.gradle.LibraryExtension` → "Unresolved reference: android"; nay cấu hình bằng `withGroovyBuilder` (không phụ thuộc lớp AGP). (2) `appkit-network` dùng `val iosMain by getting` → "KotlinSourceSet with name 'iosMain' not found"; nay lấy source set theo từng target (`iosArm64Main`…). Hai lỗi này sẽ làm hỏng mọi app dùng kit khi dựng bản Android/iOS đầy đủ.
 - `appkit-core`: `Navigator` (ngăn xếp điều hướng), `DeepLinks` (link → route), `AppSettings` (giao diện + ngôn ngữ được nhớ, quy tắc lựa chọn gần nhất thắng), `ThemeMode` (chuyển từ `appkit-ui`).
 - `appkit-network`: `Session<U>` (Loading/SignedOut/SignedIn, khôi phục khi mất mạng, tự về đăng nhập khi hết phiên), `AuthedClient.getBytes`, `logoutLocal`.
 - `appkit-platform` (mới): `PlatformServices` (openUrl, copyToClipboard, shareText, pickImage, timezoneId), `FakePlatformServices`, `openLink`, `shareOrCopy`.

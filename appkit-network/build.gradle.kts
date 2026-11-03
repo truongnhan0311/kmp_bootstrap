@@ -41,7 +41,12 @@ kotlin {
         val desktopMain by getting { dependencies { implementation(libs.ktor.client.cio) } }
         if (!desktopOnly) {
             val androidMain by getting { dependencies { implementation(libs.ktor.client.okhttp) } }
-            val iosMain by getting { dependencies { implementation(libs.ktor.client.darwin) } }
+            // KHÔNG dùng `val iosMain by getting`: `iosMain` là source set trung gian của default hierarchy template, được tạo lười SAU khối
+            // `kotlin {}` nên báo "KotlinSourceSet with name 'iosMain' not found" khi cấu hình trên Mac/CI. Source set THEO TỪNG TARGET có ngay
+            // khi khai báo target. (Engine Ktor chỉ cần có trong classpath; HttpClient tự chọn lúc chạy.)
+            listOf("iosX64Main", "iosArm64Main", "iosSimulatorArm64Main").forEach { name ->
+                getByName(name).dependencies { implementation(libs.ktor.client.darwin) }
+            }
         }
     }
 }
