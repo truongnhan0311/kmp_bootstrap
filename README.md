@@ -109,3 +109,7 @@ node --test tools/*.test.mjs                           # bộ sinh theme
 Đã kiểm trên JVM: 126 test (core 60, network 51, push 10, reminder 10, platform 5) + 9 test công cụ (bộ sinh theme, SVG → Kotlin, sinh app); dự án sinh bởi new-app biên dịch được với kit; ví dụ trong docs là code đã biên dịch và chạy.
 **Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, Swift), build Android/iOS;
 `appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.
+
+## Giấy phép
+
+MIT — xem [LICENSE](LICENSE).
