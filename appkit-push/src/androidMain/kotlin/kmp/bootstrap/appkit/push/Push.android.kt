@@ -83,7 +83,7 @@ class AppKitMessagingService : FirebaseMessagingService() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             m.type?.let { putExtra(AppKitPush.EXTRA_TYPE, it) }; m.id?.let { putExtra(AppKitPush.EXTRA_ID, it) }
         }
-        // MỖI thông báo một id + requestCode riêng theo id đối tượng (bài học qt-depot): dùng chung thì đè nhau và mở nhầm.
+        // MỖI thông báo một id + requestCode riêng theo id đối tượng (bài học từ app thật): dùng chung thì đè nhau và mở nhầm.
         val id = m.id?.hashCode() ?: 1001
         val pending = PendingIntent.getActivity(this, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         manager.notify(id, NotificationCompat.Builder(this, AppKitPush.channelId)

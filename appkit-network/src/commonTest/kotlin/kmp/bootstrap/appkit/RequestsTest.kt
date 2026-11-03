@@ -80,7 +80,7 @@ class RequestsTest {
 
     @Test fun errorMessageComesFromTheBackendContract() = runTest {
         val c = AuthedClient(HttpTransport("https://x.test", "app", MockEngine { respond("""{"code":400,"message":"wrong_password","data":""}""", HttpStatusCode.BadRequest, json) }, getRetries = 0),
-            MemoryTokenStore(), EnvelopeContract(Endpoints.qtDepot()), refreshMarginSeconds = 0)
+            MemoryTokenStore(), EnvelopeContract(Endpoints.flat()), refreshMarginSeconds = 0)
         assertEquals("wrong_password", assertFailsWith<ApiError> { c.post<Item>("/login", auth = false) }.message)
     }
 }

@@ -11,8 +11,9 @@ class EndpointsTest {
         val v2 = Endpoints.taper("/api/v2")
         assertEquals("/api/v2/auth/login", v2.login); assertEquals("/api/v2/auth/refresh", v2.refresh); assertEquals("/api/v2/me/devices", v2.devices)
         assertEquals("/api/v3/auth/login", Endpoints.taper("/api/v3").login, "đổi phiên bản API ở một chỗ")
-        val depot = Endpoints.qtDepot()
-        assertEquals("/api/v5/refresh/token", depot.refresh); assertEquals("/push", depot.devices)
+        val flat = Endpoints.flat()
+        assertEquals("/api/refresh", flat.refresh); assertEquals("/push", flat.devices)
+        assertEquals("/v9/login", Endpoints.flat("/v9").login)
     }
 
     @Test fun contractsReadPathsFromEndpointsAndOwnNoneOfTheirOwn() {

@@ -1,7 +1,7 @@
 # Thông báo đẩy (FCM) — nối vào app
 
 Phần dùng chung đã nằm trong `kit` (`kmp.bootstrap.appkit.push`). Mỗi app chỉ làm các bước nền tảng dưới đây.
-Mẫu lấy từ qt-depot (`QtDepotMessagingService`, `AppDelegate.swift`) và Taper.
+Mẫu rút ra từ hai app đã chạy thật (service nhận tin Android, `AppDelegate.swift` iOS).
 
 ## Phía server (quan trọng nhất)
 - Gửi payload **chỉ có `data`** (không có `notification` cấp cao nhất). Có `notification` thì Android ở nền tự hiện thông báo và **không gọi** `onMessageReceived` — app không chạy được code nào.
@@ -43,7 +43,7 @@ push.unregister()                           // TRƯỚC khi đăng xuất
 val target by PushNavigation.target.collectAsState()
 LaunchedEffect(target) { target?.let { navigate(it.type, it.id); PushNavigation.consumed() } }
 ```
-Backend kiểu qt-depot: thay `DevicesPushContract(Endpoints.taper())` bằng `LegacyPushContract(Endpoints.qtDepot(), appKey = "qt-depot", appName = "QT Depot")`.
+Backend chỉ nhận một lần POST kèm tên app (không có endpoint gỡ riêng): thay `DevicesPushContract(Endpoints.taper())` bằng `PostPushContract(Endpoints.flat(), appKey = "my-app", appName = "My App")`.
 Backend khác: cài `PushContract` (2 hàm: đăng ký, gỡ).
 
 ## Android
@@ -95,5 +95,5 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 Không đặt số badge trong `willPresent` (mỗi thông báo cũ vừa xử lý sẽ ghi đè lại badge); xoá badge ở `applicationDidBecomeActive`.
 
 ## Đã kiểm / chưa kiểm
-- **Đã kiểm (test JVM, không cần thiết bị):** đăng ký một lần rồi thôi, đăng ký lại khi đổi token/người dùng, server từ chối thì lần sau thử lại, `deviceId` bền và dùng khi gỡ, hai hợp đồng Taper/qt-depot, đọc payload.
+- **Đã kiểm (test JVM, không cần thiết bị):** đăng ký một lần rồi thôi, đăng ký lại khi đổi token/người dùng, server từ chối thì lần sau thử lại, `deviceId` bền và dùng khi gỡ, hai hợp đồng (`DevicesPushContract`, `PostPushContract`), đọc payload.
 - **Chưa kiểm:** toàn bộ phần Android/iOS ở trên (`Push.android.kt`, `Push.ios.kt`, Swift) — chưa biên dịch và chưa thử với Firebase thật. Chỉ chủ dự án mới thử được trên máy thật.

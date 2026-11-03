@@ -93,20 +93,20 @@ class AuthedClientTest {
         var refreshes = 0
         val engine = MockEngine { req ->
             when {
-                req.url.encodedPath.endsWith("/refresh/token") -> { refreshes++; respond("""{"code":200,"message":"success","data":{"token":"n","refresh_token":"r2"}}""", HttpStatusCode.OK, JSON) }
+                req.url.encodedPath.endsWith("/refresh") -> { refreshes++; respond("""{"code":200,"message":"success","data":{"token":"n","refresh_token":"r2"}}""", HttpStatusCode.OK, JSON) }
                 req.headers[HttpHeaders.Authorization] == "Bearer n" -> respond("""{"code":200,"data":{}}""", HttpStatusCode.OK, JSON)
                 else -> respond("""{"code":400,"message":"Token_Revoked","data":""}""", HttpStatusCode.OK, JSON)
             }
         }
         val tokens = MemoryTokenStore("old", "r1")
-        val client = AuthedClient("https://x.test", tokens, EnvelopeContract(Endpoints.qtDepot()), "app", engine, refreshMarginSeconds = 0)
-        assertEquals(200, client.raw("GET", "/api/v5/things").status)
+        val client = AuthedClient("https://x.test", tokens, EnvelopeContract(Endpoints.flat()), "app", engine, refreshMarginSeconds = 0)
+        assertEquals(200, client.raw("GET", "/api/things").status)
         assertEquals(1, refreshes); assertEquals("n", tokens.access())
     }
 
     @Test
     fun envelopeLoginFailureIsNotTokens() {
-        val c = EnvelopeContract(Endpoints.qtDepot())
+        val c = EnvelopeContract(Endpoints.flat())
         assertNull(c.parseTokens(200, """{"code":400,"message":"wrong_password","data":""}"""))
         assertEquals("wrong_password", c.errorMessage(200, """{"code":400,"message":"wrong_password","data":""}"""))
         assertFalse(c.isTokenRejected(200, """{"code":400,"message":"wrong_password"}"""))

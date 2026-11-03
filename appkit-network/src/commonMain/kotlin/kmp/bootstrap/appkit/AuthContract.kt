@@ -62,12 +62,12 @@ class PlainJsonContract(override val endpoints: Endpoints) : AuthContract {
 }
 
 /**
- * Kiểu của qt-depot: khung `{code, message, data}` (HTTP thường vẫn 200), thành công khi `code == 200` và token nằm trong
+ * Kiểu khung bọc: khung `{code, message, data}` (HTTP thường vẫn 200), thành công khi `code == 200` và token nằm trong
  * `data`. Token hết hạn: `code == 401` hoặc thông điệp kiểu `Token_Revoked`.
  */
 class EnvelopeContract(
     override val endpoints: Endpoints,
-    /** Trường thêm vào thân làm mới/đăng xuất (qt-depot gửi `app`, `platform`). */
+    /** Trường thêm vào thân làm mới/đăng xuất (ví dụ `app`, `platform`). */
     private val extra: Map<String, String> = emptyMap(),
 ) : AuthContract {
     override fun refreshBody(refreshToken: String) = buildJsonObject { put("refresh_token", refreshToken); extra.forEach { (k, v) -> put(k, v) } }

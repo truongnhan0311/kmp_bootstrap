@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 /** Một thông báo đã được bấm/nhận, theo data payload chuẩn: `type` (loại) + `id` (đối tượng), cùng `title`/`body`/`silent`. */
 data class PushMessage(val type: String?, val id: String?, val title: String?, val body: String?, val silent: Boolean) {
     companion object {
-        /** Đọc từ data payload (Android `RemoteMessage.data`, iOS `userInfo`). Khoá `uuid` được chấp nhận như `id` (qt-depot). */
+        /** Đọc từ data payload (Android `RemoteMessage.data`, iOS `userInfo`). Khoá `uuid` được chấp nhận như `id` (một số backend dùng `uuid`). */
         fun fromData(data: Map<String, String?>) = PushMessage(
             type = data["type"]?.takeIf { it.isNotBlank() },
             id = (data["id"] ?: data["uuid"])?.takeIf { it.isNotBlank() },

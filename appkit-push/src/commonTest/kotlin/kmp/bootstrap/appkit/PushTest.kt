@@ -7,7 +7,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import kmp.bootstrap.appkit.push.DeviceInfo
 import kmp.bootstrap.appkit.push.DevicesPushContract
-import kmp.bootstrap.appkit.push.LegacyPushContract
+import kmp.bootstrap.appkit.push.PostPushContract
 import kmp.bootstrap.appkit.push.PushMessage
 import kmp.bootstrap.appkit.push.PushManager
 import kmp.bootstrap.appkit.push.PushPermission
@@ -88,13 +88,13 @@ class PushTest {
         assertNotEquals(id, manager(Calls(), MemoryKeyValueStore()).deviceId(), "máy khác id khác")
     }
 
-    @Test fun legacyContractMatchesDepotShapeAndHasNoUnregisterCall() = runTest {
-        val calls = Calls(); val c = LegacyPushContract(Endpoints.qtDepot(), appKey = "qt-depot", appName = "QT Depot", buildNumber = "7")
+    @Test fun postContractSendsOneRegistrationAndHasNoUnregisterCall() = runTest {
+        val calls = Calls(); val c = PostPushContract(Endpoints.flat(), appKey = "my-app", appName = "My App", buildNumber = "7")
         val m = manager(calls, contract = c)
         m.registerIfNeeded(); m.unregister()
-        assertEquals(1, calls.seen.size, "depot gỡ qua /logout, không có endpoint riêng")
+        assertEquals(1, calls.seen.size, "backend loại này gỡ qua /logout, không có endpoint riêng")
         assertEquals("/push", calls.seen[0].second)
-        listOf("\"app\":\"qt-depot\"", "\"app_name\":\"QT Depot\"", "\"build_number\":\"7\"", "\"device_id\"").forEach { assertTrue(calls.seen[0].third.contains(it), it) }
+        listOf("\"app\":\"my-app\"", "\"app_name\":\"My App\"", "\"build_number\":\"7\"", "\"device_id\"").forEach { assertTrue(calls.seen[0].third.contains(it), it) }
     }
 
     @Test fun payloadParsingAcceptsUuidAndSilent() {

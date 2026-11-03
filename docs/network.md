@@ -9,7 +9,7 @@ commonMain.dependencies { implementation("kmp.bootstrap:appkit-network") }
 ## Khởi động
 
 Đường dẫn khai báo **một chỗ** (`Endpoints`); contract/push không tự mang đường dẫn. Hai backend khác nhau chỉ khác `AuthContract`
-(`PlainJsonContract`: JSON phẳng, lỗi là HTTP 4xx — Taper; `EnvelopeContract`: khung `{code,message,data}` — qt-depot) và `Endpoints`.
+(`PlainJsonContract`: JSON phẳng, lỗi là HTTP 4xx — ví dụ Taper; `EnvelopeContract`: khung `{code,message,data}`) và `Endpoints`.
 Backend thứ ba: cài `AuthContract` (6 hàm nhỏ).
 
 <!-- snippet: network-setup -->

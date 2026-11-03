@@ -78,7 +78,7 @@ AppKit.client.sessionExpired.collect { goToLogin() }                            
 | Cache GET (bật theo từng lời gọi) | TTL, bản cũ khi lỗi, ngăn riêng từng người dùng, tự xoá khi ghi, xoá sạch khi đăng xuất |
 | Log | file xoay vòng + xoá theo tuổi; mật khẩu che hẳn, token giữ 5 ký tự cuối để tra |
 
-Hai kiểu backend, một cơ chế: chỗ **duy nhất** khác nhau là `AuthContract` (`PlainJsonContract` kiểu Taper, `EnvelopeContract` kiểu qt-depot) cùng `Endpoints` (đường dẫn). Backend thứ ba: cài `AuthContract` (6 hàm nhỏ).
+Hai kiểu backend, một cơ chế: chỗ **duy nhất** khác nhau là `AuthContract` (`PlainJsonContract` kiểu Taper, `EnvelopeContract` kiểu khung `{code,message,data}`) cùng `Endpoints` (đường dẫn). Backend thứ ba: cài `AuthContract` (6 hàm nhỏ).
 
 ## Cấu trúc
 

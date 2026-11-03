@@ -15,7 +15,7 @@ import kotlin.random.Random
 
 /*
  * Thông báo đẩy (FCM). Phần dùng chung viết một lần ở đây; chỉ có hai thứ phụ thuộc nền tảng (lấy token, hiện thông báo)
- * và một thứ phụ thuộc backend (PushContract). Bài học từ qt-depot / Taper đã gói sẵn:
+ * và một thứ phụ thuộc backend (PushContract). Bài học từ các app đã chạy thật đã gói sẵn:
  *
  *  1. Khoá của máy là `deviceId` (id lần cài app, giữ qua đăng xuất), KHÔNG phải token FCM — token tự đổi được.
  *  2. Đăng ký sau khi đăng nhập VÀ mỗi khi token đổi; chỉ gọi server khi có gì mới (không gọi lặp mỗi lần mở app).
@@ -90,10 +90,10 @@ class DevicesPushContract(private val endpoints: Endpoints) : PushContract {
 }
 
 /**
- * Hợp đồng kiểu qt-depot: `POST {endpoints.devices}` với `{token, device_name, device_model, os, version, platform, app_name, app_version,
+ * Hợp đồng kiểu "một lần POST": `POST {endpoints.devices}` với `{token, device_name, device_model, os, version, platform, app_name, app_version,
  * build_number, app, device_id}`; không có endpoint gỡ riêng (server gỡ khi `/logout` nhận `device_id`) nên `unregister` là no-op.
  */
-class LegacyPushContract(private val endpoints: Endpoints, private val appKey: String, private val appName: String, private val buildNumber: String = "") : PushContract {
+class PostPushContract(private val endpoints: Endpoints, private val appKey: String, private val appName: String, private val buildNumber: String = "") : PushContract {
     override fun register(r: PushRegistration) = PushCall("POST", endpoints.requireDevices(), buildJsonObject {
         fun s(k: String, v: String) = put(k, JsonPrimitive(v))
         s("token", r.token); s("device_name", r.device.name); s("device_model", r.device.model); s("os", r.device.os); s("version", r.device.os)

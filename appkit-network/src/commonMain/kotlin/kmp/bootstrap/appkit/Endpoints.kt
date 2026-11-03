@@ -4,7 +4,7 @@ package kmp.bootstrap.appkit
  * MỘT chỗ duy nhất khai báo đường dẫn API của app. Không class nào trong kit (contract đăng nhập, contract push…) tự mang
  * đường dẫn bên trong — chúng nhận [Endpoints] này. Đổi phiên bản API (`/api/v2` → `/api/v3`) hoặc đổi backend là sửa ở đây:
  *
- *     val endpoints = Endpoints.taper(prefix = "/api/v2")       // hoặc Endpoints.qtDepot(), hoặc tự khai báo từng đường
+ *     val endpoints = Endpoints.taper(prefix = "/api/v2")       // hoặc Endpoints.flat(), hoặc tự khai báo từng đường
  *     AppKit.start(AppKitConfig(name = "my-app", baseUrls = …, contract = PlainJsonContract(endpoints)))
  *     AppKit.endpoints.login                                    // code app cũng lấy đường dẫn từ đây, không gõ chuỗi
  *
@@ -39,9 +39,12 @@ data class Endpoints(
             logout = "$prefix/auth/logout", me = "$prefix/auth/me", devices = "$prefix/me/devices", extra = extra,
         )
 
-        /** qt-depot (isto_account_be): `{prefix}/login`, `{prefix}/refresh/token`, `{prefix}/logout`; push đăng ký ở `/push`. */
-        fun qtDepot(prefix: String = "/api/v5", pushPath: String = "/push", extra: Map<String, String> = emptyMap()) = Endpoints(
-            login = "$prefix/login", refresh = "$prefix/refresh/token", logout = "$prefix/logout", devices = pushPath, extra = extra,
+        /**
+         * Kiểu phẳng: `{prefix}/login`, `{prefix}/refresh`, `{prefix}/logout`; push đăng ký ở [pushPath]. Backend có đường khác (ví dụ `/refresh/token`)
+         * thì tự khai `Endpoints(login = …, refresh = …, logout = …)` ngay trong app — đường dẫn riêng của một backend không thuộc về kit.
+         */
+        fun flat(prefix: String = "/api", pushPath: String = "/push", extra: Map<String, String> = emptyMap()) = Endpoints(
+            login = "$prefix/login", refresh = "$prefix/refresh", logout = "$prefix/logout", devices = pushPath, extra = extra,
         )
     }
 }
