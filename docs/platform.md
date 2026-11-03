@@ -11,6 +11,7 @@ commonMain.dependencies { implementation("kmp.bootstrap:appkit-platform") }
 | `openUrl(url)` | mở trình duyệt / ứng dụng xử lý link |
 | `copyToClipboard(text)` | chép vào clipboard |
 | `shareText(text)` | hộp thoại chia sẻ của hệ điều hành; trả `false` nếu không mở được |
+| `shareFile(filename, bytes, mimeType)` | đưa một tệp ra khỏi app (Android: chia sẻ qua FileProvider; iOS: hộp thoại chia sẻ; desktop: thư mục Tải về). Trả `false` khi không làm được |
 | `pickImage()` | bộ chọn ảnh → `PickedImage(bytes, filename, contentType)`; `null` nếu người dùng huỷ |
 | `timezoneId()` | múi giờ IANA ("Asia/Ho_Chi_Minh") để chia ngày đúng theo người dùng |
 
@@ -53,6 +54,9 @@ val result = shareAndAvatar(fake, "https://app.example.com/s/abc")
 
 - **Android:** `MainActivity.onCreate` (trước `setContent`): `AppKitAndroid.init(applicationContext); AppKitPlatform.attach(this)` — Android bắt đăng ký bộ chọn ảnh trước khi Activity bắt đầu.
 - **iOS:** không cần gì thêm; hộp thoại chia sẻ/chọn ảnh được trình bày từ view controller trên cùng.
+- **Android, `shareFile`:** khai FileProvider trong Manifest (authority mặc định `<applicationId>.files`, đổi bằng `AppKitPlatform.fileAuthority`):
+  `<provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/></provider>`
+  với `file_paths.xml` có `<cache-path name="exports" path="exports/"/>`.
 - **Desktop:** `shareText` trả `false` (không có hộp thoại chia sẻ chung) nên `shareOrCopy` sẽ copy; `pickImage` mở hộp thoại tệp.
 
 **Đã kiểm (JVM):** `openLink` chặn scheme lạ, `shareOrCopy`, bản giả, múi giờ thật của desktop. **Chưa kiểm** (cần thiết bị): Android (Intent, ClipboardManager, GetContent), iOS (UIActivityViewController, UIImagePickerController, UIPasteboard), hộp thoại tệp desktop.

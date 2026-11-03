@@ -20,6 +20,11 @@ interface PlatformServices {
     fun copyToClipboard(text: String)
     /** Mở hộp thoại chia sẻ. Trả true nếu đã mở được; false thì app nên rơi về [copyToClipboard]. */
     fun shareText(text: String): Boolean
+    /**
+     * Đưa một TỆP ra khỏi app: Android/iOS mở hộp thoại chia sẻ/lưu của hệ điều hành, desktop ghi vào thư mục Tải về.
+     * `filename` nên đã được làm sạch (không có `/`, `..`). Trả false khi không làm được. Mặc định false để bản cài cũ vẫn biên dịch.
+     */
+    fun shareFile(filename: String, bytes: ByteArray, mimeType: String): Boolean = false
     /** Mở bộ chọn ảnh. Trả null nếu người dùng huỷ hoặc không chọn được. */
     suspend fun pickImage(): PickedImage?
     /** Múi giờ IANA của máy ("Asia/Ho_Chi_Minh"). */
@@ -38,9 +43,11 @@ class FakePlatformServices(
     val openedUrls = mutableListOf<String>()
     val copied = mutableListOf<String>()
     val shared = mutableListOf<String>()
+    val sharedFiles = mutableListOf<Triple<String, ByteArray, String>>()
     override fun openUrl(url: String) { openedUrls += url }
     override fun copyToClipboard(text: String) { copied += text }
     override fun shareText(text: String): Boolean { shared += text; return shareWorks }
+    override fun shareFile(filename: String, bytes: ByteArray, mimeType: String): Boolean { sharedFiles += Triple(filename, bytes, mimeType); return shareWorks }
     override suspend fun pickImage(): PickedImage? = nextImage.also { nextImage = null }
     override fun timezoneId(): String = timezone
 }

@@ -21,6 +21,8 @@ object AppKitPlatform {
     internal var activity: ComponentActivity? = null
     internal var launcher: ActivityResultLauncher<String>? = null
     internal var pending: CompletableDeferred<Uri?>? = null
+    /** Authority của FileProvider khai trong Manifest (xem docs/platform.md). Mặc định `<applicationId>.files`. */
+    var fileAuthority: String? = null
 
     fun attach(activity: ComponentActivity) {
         this.activity = activity
@@ -44,6 +46,16 @@ class AndroidPlatformServices : PlatformServices {
     override fun shareText(text: String): Boolean = runCatching {
         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
         ctx.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); true
+    }.getOrDefault(false)
+
+    /** Ghi vào `cache/exports/` rồi chia sẻ qua FileProvider — cần khai provider trong Manifest (docs/platform.md). */
+    override fun shareFile(filename: String, bytes: ByteArray, mimeType: String): Boolean = runCatching {
+        val dir = java.io.File(ctx.cacheDir, "exports").also { it.mkdirs() }
+        val file = java.io.File(dir, java.io.File(filename).name).also { it.writeBytes(bytes) }
+        val uri = androidx.core.content.FileProvider.getUriForFile(ctx, AppKitPlatform.fileAuthority ?: (ctx.packageName + ".files"), file)
+        val send = Intent(Intent.ACTION_SEND).setType(mimeType).putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        ctx.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION))
+        true
     }.getOrDefault(false)
 
     override suspend fun pickImage(): PickedImage? {

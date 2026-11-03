@@ -6,6 +6,9 @@ import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.CompletableDeferred
 import platform.Foundation.NSData
+import platform.Foundation.NSTemporaryDirectory
+import platform.Foundation.create
+import platform.Foundation.writeToFile
 import platform.Foundation.NSTimeZone
 import platform.Foundation.NSURL
 import platform.Foundation.localTimeZone
@@ -21,6 +24,7 @@ import platform.UIKit.UIImagePickerControllerSourceType
 import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.UIKit.UIPasteboard
 import platform.UIKit.UIViewController
+import platform.UIKit.popoverPresentationController
 import platform.darwin.NSObject
 import platform.posix.memcpy
 
@@ -41,6 +45,19 @@ class IosPlatformServices : PlatformServices {
     override fun shareText(text: String): Boolean {
         val vc = top() ?: return false
         vc.presentViewController(UIActivityViewController(listOf(text), null), true, null); return true
+    }
+
+    /** Ghi vào thư mục tạm rồi mở hộp thoại chia sẻ (Lưu vào Tệp, AirDrop…). */
+    override fun shareFile(filename: String, bytes: ByteArray, mimeType: String): Boolean {
+        if (bytes.isEmpty()) return false
+        val vc = top() ?: return false
+        val path = NSTemporaryDirectory() + filename.substringAfterLast('/')
+        val data = bytes.usePinned { NSData.create(bytes = it.addressOf(0), length = bytes.size.toULong()) }
+        if (!data.writeToFile(path, atomically = true)) return false
+        val sheet = UIActivityViewController(listOf(NSURL.fileURLWithPath(path)), null)
+        sheet.popoverPresentationController?.sourceView = vc.view   // iPad bắt buộc có điểm neo, thiếu là crash
+        vc.presentViewController(sheet, true, null)
+        return true
     }
 
     private var delegate: PickerDelegate? = null

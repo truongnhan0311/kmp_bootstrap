@@ -10,6 +10,8 @@ import kmp.bootstrap.appkit.push.DevicesPushContract
 import kmp.bootstrap.appkit.push.LegacyPushContract
 import kmp.bootstrap.appkit.push.PushMessage
 import kmp.bootstrap.appkit.push.PushManager
+import kmp.bootstrap.appkit.push.PushPermission
+import kmp.bootstrap.appkit.push.PushPermissionRequester
 import kmp.bootstrap.appkit.push.PushTokenSource
 import kmp.bootstrap.appkit.push.PushTokens
 import kotlinx.coroutines.test.runTest
@@ -23,7 +25,7 @@ import kotlin.test.assertTrue
 
 class PushTest {
     private val device = { DeviceInfo("Pixel", "Pixel 8", "Android 15", "android") }
-    @AfterTest fun reset() = PushTokens.set(null)
+    @AfterTest fun reset() { PushTokens.set(null); PushPermission.requester = null }
 
     private class Calls { val seen = mutableListOf<Triple<HttpMethod, String, String>>() }
 
@@ -43,6 +45,23 @@ class PushTest {
         assertEquals(2, calls.seen.size, "đổi người dùng thì đăng ký lại")
         PushTokens.set("fcm2"); m.registerIfNeeded("u2")
         assertEquals(3, calls.seen.size, "token FCM đổi thì đăng ký lại")
+    }
+
+    @Test fun permissionIsRequestedBeforeFirstRegistrationOnly() = runTest {
+        var asked = 0
+        PushPermission.requester = object : PushPermissionRequester { override fun request() { asked++ } }
+        val m = manager(Calls())
+        assertTrue(m.registerIfNeeded("u1"))
+        assertEquals(1, asked, "lần đầu xin quyền")
+        m.registerIfNeeded("u1")
+        assertEquals(1, asked, "đã đăng ký rồi thì không xin lại")
+        m.unregister(); m.registerIfNeeded("u1")
+        assertEquals(2, asked, "sau khi gỡ (đăng xuất) và đăng nhập lại thì xin lại — hệ thống tự bỏ qua nếu đã quyết định")
+    }
+
+    @Test fun aFailingPermissionRequesterNeverBreaksRegistration() = runTest {
+        PushPermission.requester = object : PushPermissionRequester { override fun request() = error("boom") }
+        assertTrue(manager(Calls()).registerIfNeeded("u1"))
     }
 
     @Test fun noTokenMeansNoCall() = runTest {

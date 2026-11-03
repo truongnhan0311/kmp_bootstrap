@@ -16,6 +16,11 @@ class DesktopPlatformServices : PlatformServices {
     override fun copyToClipboard(text: String) { runCatching { Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null) } }
     /** Desktop không có hộp thoại chia sẻ chung: trả false để app rơi về copy. */
     override fun shareText(text: String): Boolean = false
+    /** Desktop chỉ để xem thử: ghi vào `~/Downloads` (chỉ lấy phần tên tệp, không cho thoát ra ngoài thư mục). */
+    override fun shareFile(filename: String, bytes: ByteArray, mimeType: String): Boolean = runCatching {
+        val dir = File(System.getProperty("user.home"), "Downloads").also { it.mkdirs() }
+        File(dir, File(filename).name).writeBytes(bytes)
+    }.isSuccess
     override suspend fun pickImage(): PickedImage? = runCatching {
         val dialog = FileDialog(null as Frame?, "Chọn ảnh", FileDialog.LOAD).apply { setFilenameFilter { _, n -> n.lowercase().let { it.endsWith(".png") || it.endsWith(".jpg") || it.endsWith(".jpeg") || it.endsWith(".webp") } }; isVisible = true }
         val name = dialog.file ?: return null

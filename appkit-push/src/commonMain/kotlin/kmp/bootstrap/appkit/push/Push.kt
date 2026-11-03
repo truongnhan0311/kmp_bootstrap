@@ -43,6 +43,19 @@ object PushTokens {
     fun set(token: String?) { _token.value = token?.takeIf { it.isNotBlank() } }
 }
 
+/** Nền tảng cài để xin quyền hiện thông báo. Dùng interface (không phải lambda) để Swift cài được: lambda trả Unit sang Swift thành `KotlinUnit`. */
+interface PushPermissionRequester { fun request() }
+
+/**
+ * Xin quyền thông báo ĐÚNG LÚC cần (sau đăng nhập), không phải lúc mở app. [PushManager.registerIfNeeded] gọi [ensure] trước khi thiết bị
+ * đăng ký lần đầu. Android cài bằng `AppKitPush.requestPermission(activity)`; iOS cài ở Swift (`UNUserNotificationCenter.requestAuthorization`
+ * rồi `registerForRemoteNotifications`). Token đến muộn hơn lời gọi — app nên gọi lại `registerIfNeeded` khi [PushTokens.token] đổi.
+ */
+object PushPermission {
+    var requester: PushPermissionRequester? = null
+    fun ensure() { runCatching { requester?.request() } }
+}
+
 /** Id cố định của LẦN CÀI app: tự sinh lần đầu, lưu bền, không xoá khi đăng xuất. */
 class DeviceId(private val prefs: KeyValueStore, private val key: String = "push.device_id") {
     fun get(): String = prefs.get(key)?.takeIf { it.isNotBlank() } ?: run {
@@ -107,6 +120,7 @@ class PushManager(
 
     /** Đăng ký nếu có token và token/người dùng khác lần đăng ký trước. Trả true nếu server đã nhận (hoặc không cần gửi lại). */
     suspend fun registerIfNeeded(userKey: String = ""): Boolean {
+        if (prefs.get(KEY_REGISTERED) == null) PushPermission.ensure()   // lần đầu: xin quyền (không hỏi lại khi đã đăng ký)
         val token = PushTokens.token.value ?: tokenSource.token()?.also { PushTokens.set(it) } ?: return false
         val fingerprint = "$userKey|$token|$appVersion"
         if (prefs.get(KEY_REGISTERED) == fingerprint) return true

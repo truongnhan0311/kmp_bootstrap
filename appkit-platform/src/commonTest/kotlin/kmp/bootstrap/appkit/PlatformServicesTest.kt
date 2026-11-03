@@ -28,4 +28,11 @@ class PlatformServicesTest {
         val p = FakePlatformServices(nextImage = PickedImage(byteArrayOf(1), "a.png", "image/png"))
         assertEquals("a.png", p.pickImage()?.filename); assertNull(p.pickImage())
     }
+
+    @Test fun fakeRecordsSharedFiles() {
+        val p = FakePlatformServices()
+        assertTrue(p.shareFile("plan.fit", byteArrayOf(1, 2), "application/octet-stream"))
+        assertEquals("plan.fit", p.sharedFiles.single().first)
+        assertFalse(FakePlatformServices(shareWorks = false).shareFile("a.zip", byteArrayOf(1), "application/zip"))
+    }
 }

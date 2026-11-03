@@ -20,6 +20,9 @@ push.unregister()                                       // TRƯỚC khi đăng x
 ```
 <!-- /snippet -->
 
+Xin quyền đúng lúc: `PushPermission.requester = object : PushPermissionRequester { override fun request() { … } }` — `registerIfNeeded` gọi nó trước lần đăng ký đầu
+(Android: `AppKitPush.requestPermission(activity)`; iOS: cài ở Swift). Token iOS đến muộn hơn lời gọi nên app gọi lại `registerIfNeeded` khi `PushTokens.token` đổi.
+
 Điều hướng khi bấm thông báo:
 
 <!-- snippet: push-navigation -->
