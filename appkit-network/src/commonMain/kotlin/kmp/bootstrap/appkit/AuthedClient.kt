@@ -122,6 +122,29 @@ class AuthedClient(
         return bytes
     }
 
+    /**
+     * Tải tệp kèm header (tên tệp, loại) — gắn JWT, bị từ chối thì làm mới phiên rồi tải lại một lần. Mã HTTP lỗi KHÔNG ném (như [raw]):
+     * đọc câu báo lỗi của server bằng `errorMessageOf(RawResponse(r.status, r.text(), r.requestId))`.
+     */
+    suspend fun download(path: String, auth: Boolean = true, timeoutMs: Long? = null): FileResponse {
+        val used = if (auth) tokens.access() else null
+        val first = transport.download(path, used, timeoutMs)
+        if (!auth || first.status in 200..299 || !contract.isTokenRejected(first.status, first.text())) return first
+        if (!refreshSession(used)) return first
+
+        return transport.download(path, tokens.access(), timeoutMs)
+    }
+
+    /** Gửi form `multipart/form-data` — gắn JWT, bị từ chối thì làm mới phiên rồi gửi lại một lần (như [raw]). */
+    suspend fun upload(method: String, path: String, parts: List<FormPart>, auth: Boolean = true, timeoutMs: Long? = null): RawResponse {
+        val used = if (auth) tokens.access() else null
+        val first = transport.upload(method, path, parts, used, timeoutMs)
+        if (!auth || !contract.isTokenRejected(first.status, first.body)) return first
+        if (!refreshSession(used)) return first
+
+        return transport.upload(method, path, parts, tokens.access(), timeoutMs)
+    }
+
     /** Câu báo lỗi đọc được từ phản hồi lỗi, theo hợp đồng của backend. */
     fun errorMessageOf(r: RawResponse): String = contract.errorMessage(r.status, r.body) ?: ErrorKind.ofStatus(r.status).defaultMessage()
 

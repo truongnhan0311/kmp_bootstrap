@@ -49,6 +49,20 @@ AppKit.client.sendNoContent("DELETE", "/api/v2/users/7")                        
 ```
 <!-- /snippet -->
 
+## Tải tệp và gửi form (có header)
+
+`getBytes` chỉ trả byte. Khi cần tên tệp / loại tệp từ header (xuất dữ liệu, tải về) dùng `download`; gửi `multipart/form-data` (tải ảnh lên) dùng `upload`. Cả hai gắn JWT và,
+khi bị từ chối, làm mới phiên rồi gửi lại **đúng một lần** (cùng khoá single-flight với `get/post`). Mã HTTP lỗi **không ném** (như `raw`):
+thân lỗi của server là JSON, đọc câu báo lỗi bằng `errorMessageOf`. `FileResponse.filename` đến từ server nên **làm sạch trước khi ghi ra đĩa**.
+
+```kotlin
+val file = AppKit.client.download("/api/activities/9/export/fit")        // FileResponse(status, bytes, contentType, contentDisposition)
+if (file.status !in 200..299) error(AppKit.client.errorMessageOf(RawResponse(file.status, file.text(), file.requestId)))
+val saveAs = file.filename                                                // "taper-2026-10-30-0700.fit" (chưa làm sạch)
+
+val r = AppKit.client.upload("POST", "/api/me/avatar", listOf(FormPart("avatar", bytes, "a.png", "image/png")))
+```
+
 ## Xử lý lỗi
 
 Mọi thất bại là một `ApiError` có `kind`, `status` (0 = chưa có phản hồi), `requestId` (dán vào log máy chủ để tra) và `message` (lời của server nếu có,

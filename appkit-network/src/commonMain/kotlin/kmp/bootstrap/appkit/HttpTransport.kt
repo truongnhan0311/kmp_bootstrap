@@ -6,6 +6,8 @@ import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
 import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
@@ -13,6 +15,7 @@ import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
@@ -22,6 +25,21 @@ import kotlinx.serialization.json.JsonObject
 import kotlin.time.TimeSource
 
 data class RawResponse(val status: Int, val body: String, val requestId: String?)
+
+/**
+ * Phản hồi tải tệp (nhị phân) kèm header cần để đặt tên/loại tệp. Như [RawResponse], mã HTTP lỗi KHÔNG ném — lớp trên quyết định
+ * (thân lỗi của server thường là JSON: đọc bằng [text]).
+ */
+class FileResponse(val status: Int, val bytes: ByteArray, val contentType: String?, val contentDisposition: String?, val requestId: String?) {
+    /** Thân dạng chữ — dùng để đọc câu báo lỗi của server khi mã HTTP không phải 2xx. */
+    fun text(): String = bytes.decodeToString()
+
+    /** Tên tệp trong `Content-Disposition: attachment; filename="…"`, CHƯA làm sạch (đến từ máy chủ — không tin khi ghi ra đĩa). */
+    val filename: String? get() = Regex("filename=\"([^\"]+)\"").find(contentDisposition.orEmpty())?.groupValues?.get(1)
+}
+
+/** Một phần của form `multipart/form-data` (tải ảnh, tệp lên). */
+class FormPart(val name: String, val bytes: ByteArray, val filename: String? = null, val contentType: String? = null)
 
 /**
  * Tầng GỬI REQUEST thuần: tên miền dự phòng, header `X-App-Id`, timeout, log. KHÔNG biết đăng nhập/token gì cả.
@@ -80,6 +98,45 @@ class HttpTransport(
         }
         return outcome.getOrThrow()
     }
+
+    /** Tải tệp kèm header (tên tệp, loại) — cùng failover và phân loại lỗi như [execute]; không thử lại. */
+    suspend fun download(path: String, bearer: String? = null, timeoutMs: Long? = null): FileResponse =
+        runCatchingNetwork("GET", path) {
+            val base = failover.current()
+            val response = http.request {
+                url(base + path)
+                if (timeoutMs != null) timeout { requestTimeoutMillis = timeoutMs }
+                if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer")
+            }
+            failover.markWorking(base)
+            FileResponse(
+                response.status.value, response.readRawBytes(), response.headers[HttpHeaders.ContentType]?.substringBefore(';')?.trim(),
+                response.headers[HttpHeaders.ContentDisposition], response.headers["X-Request-Id"],
+            )
+        }.getOrThrow()
+
+    /** Gửi form `multipart/form-data` (tải ảnh lên…). Không thử lại (ghi); trả [RawResponse] như [execute]. */
+    suspend fun upload(method: String, path: String, parts: List<FormPart>, bearer: String? = null, timeoutMs: Long? = null): RawResponse =
+        runCatchingNetwork(method, path) {
+            val base = failover.current()
+            val response = http.request {
+                this.method = HttpMethod.parse(method)
+                url(base + path)
+                if (timeoutMs != null) timeout { requestTimeoutMillis = timeoutMs }
+                header(HttpHeaders.Accept, "application/json")
+                if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer")
+                setBody(MultiPartFormDataContent(formData {
+                    parts.forEach { p ->
+                        append(p.name, p.bytes, Headers.build {
+                            p.contentType?.let { append(HttpHeaders.ContentType, it) }
+                            p.filename?.let { append(HttpHeaders.ContentDisposition, "filename=\"$it\"") }
+                        })
+                    }
+                }))
+            }
+            failover.markWorking(base)
+            RawResponse(response.status.value, response.bodyAsText(), response.headers["X-Request-Id"])
+        }.getOrThrow()
 
     private suspend fun <T> runCatchingNetwork(method: String, path: String, block: suspend () -> T): Result<T> = try {
         Result.success(block())
