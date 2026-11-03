@@ -157,6 +157,79 @@ class AuthedClientTest {
         assertEquals("t", tokens.access()); assertEquals("keep", tokens.refresh())
         assertFalse(client.storeLogin(RawResponse(401, "{}", null)))
     }
+
+    @Test
+    fun logoutSendsTheBearerTokenAndRefreshTokenBody() = runTest {
+        var bearer: String? = null
+        var body = ""
+        val engine = MockEngine { req ->
+            bearer = req.headers[HttpHeaders.Authorization]
+            body = (req.body as io.ktor.http.content.TextContent).text
+            respond("", HttpStatusCode.NoContent)
+        }
+        val tokens = MemoryTokenStore("access-1", "refresh-1")
+        AuthedClient("https://x.test", tokens, PlainJsonContract(TEST_PLAIN), "app", engine, refreshMarginSeconds = 0).logout(all = true)
+        assertEquals("Bearer access-1", bearer, "server đặt logout sau middleware xác thực: thiếu Bearer là đăng xuất thất bại âm thầm")
+        assertTrue(body.contains("\"refresh_token\":\"refresh-1\"") && body.contains("\"all\":true"), body)
+        assertNull(tokens.access()); assertNull(tokens.refresh())
+    }
+
+    @Test
+    fun loginRegisterAndRefreshStillCarryNoBearer() = runTest {
+        val seen = mutableListOf<String?>()
+        val engine = MockEngine { req -> seen += req.headers[HttpHeaders.Authorization]; respond("{}", HttpStatusCode.OK, JSON) }
+        val client = AuthedClient("https://x.test", MemoryTokenStore("old", "r"), PlainJsonContract(TEST_PLAIN), "app", engine, refreshMarginSeconds = 0)
+        client.raw("POST", TEST_PLAIN.login); client.raw("POST", TEST_PLAIN.register!!); client.raw("POST", TEST_PLAIN.refresh)
+        assertEquals(listOf<String?>(null, null, null), seen)
+    }
+
+    @Test
+    fun tokenIsNeverSentToAThirdPartyAbsoluteUrl() = runTest {
+        val seen = mutableListOf<Pair<String, String?>>()
+        val engine = MockEngine { req -> seen += req.url.toString() to req.headers[HttpHeaders.Authorization]; respond(byteArrayOf(1), HttpStatusCode.OK) }
+        val client = AuthedClient("https://x.test/app", MemoryTokenStore("secret", "r"), PlainJsonContract(TEST_PLAIN), "app", engine, refreshMarginSeconds = 0)
+        client.getBytes("https://evil.test/a.png")
+        client.download("https://evil.test/f.fit")
+        client.getBytes("https://x.test/app/avatars/1")   // thuộc máy chủ của mình: có token
+        client.getBytes("/avatars/2")                       // đường tương đối: có token
+        assertEquals(listOf(null, null, "Bearer secret", "Bearer secret"), seen.map { it.second })
+        assertEquals("https://evil.test/a.png", seen[0].first, "URL tuyệt đối dùng nguyên, không nối vào địa chỉ máy chủ")
+        assertEquals("https://x.test/app/avatars/2", seen[3].first)
+    }
+
+    @Test
+    fun serverAddressCanChangeAtRuntimeWithoutLosingTheSession() = runTest {
+        var base = "https://one.test"
+        val hosts = mutableListOf<String>(); val bearers = mutableListOf<String?>()
+        val engine = MockEngine { req -> hosts += req.url.host; bearers += req.headers[HttpHeaders.Authorization]; respond("{}", HttpStatusCode.OK, JSON) }
+        val client = AuthedClient(HttpTransport(Failover({ listOf(base) }), "app", engine), MemoryTokenStore("jwt", "r"), PlainJsonContract(TEST_PLAIN), refreshMarginSeconds = 0)
+        client.raw("GET", "/api/a")
+        base = "https://two.test"
+        client.raw("GET", "/api/b")
+        assertEquals(listOf("one.test", "two.test"), hosts)
+        assertEquals(listOf<String?>("Bearer jwt", "Bearer jwt"), bearers)
+    }
+
+    @Test
+    fun refreshMarginAndGetRetriesAreConfigurable() = runTest {
+        // exp = now + 30s; margin 10s → KHÔNG làm mới sớm; margin 120s → làm mới sớm.
+        val jwt = "h." + java_b64("""{"exp":1030}""") + ".s"
+        suspend fun run(margin: Long): Int {
+            var refreshes = 0
+            val engine = MockEngine { req ->
+                if (req.url.encodedPath.endsWith("/refresh")) { refreshes++; respond(tokensPair("fresh", "r2"), HttpStatusCode.OK, JSON) } else respond("{}", HttpStatusCode.OK, JSON)
+            }
+            val client = AuthedClient("https://x.test", MemoryTokenStore(jwt, "r1"), PlainJsonContract(TEST_PLAIN), "app", engine, refreshMarginSeconds = margin, nowEpochSeconds = { 1000 })
+            client.raw("GET", "/api/a")
+            return refreshes
+        }
+        assertEquals(0, run(10)); assertEquals(1, run(120))
+
+        var calls = 0
+        val failing = MockEngine { calls++; respond("{}", HttpStatusCode.InternalServerError, JSON) }
+        AuthedClient(HttpTransport("https://x.test", "app", failing, getRetries = 0, backoffMs = 1), MemoryTokenStore("a", "r"), PlainJsonContract(TEST_PLAIN), refreshMarginSeconds = 0).raw("GET", "/api/a")
+        assertEquals(1, calls, "getRetries = 0 tắt thử lại")
+    }
 }
 
 @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)

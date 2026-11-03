@@ -23,6 +23,14 @@ class AppKitConfig(
     val appId: String = name,
     val engine: HttpClientEngine? = null,
     val logToFile: Boolean = true,
+    /** Địa chỉ máy chủ lấy lúc chạy (app cho người dùng tự đổi máy chủ). Có thì thay cho [baseUrls]; phiên đăng nhập giữ nguyên khi địa chỉ đổi. */
+    val baseUrlsProvider: (() -> List<String>)? = null,
+    /** Làm mới access token SỚM khi còn ít hơn chừng này giây (đọc `exp` của JWT); 0 = chỉ làm mới sau khi bị từ chối. */
+    val refreshMarginSeconds: Long = 120,
+    /** Số lần tự thử lại request ĐỌC (GET) khi gặp timeout/5xx/429; 0 = tắt. Request ghi không bao giờ tự thử lại. */
+    val getRetries: Int = 1,
+    /** Thời gian chờ tối đa cho một request (ms). Tăng cho app có lời gọi chậm (ví dụ AI trả lời hàng chục giây). */
+    val requestTimeoutMs: Long = 30_000,
 )
 
 object AppKit {
@@ -43,7 +51,11 @@ object AppKit {
         val sinks = mutableListOf<LogSink>(ConsoleSink())
         if (config.logToFile) runCatching { RotatingFileSink(platformLogDir(config.name)).also { _fileLog = it; sinks += it } }
         AppLog.install(*sinks.toTypedArray())
-        _client = AuthedClient(Failover(config.baseUrls), storage.tokens, config.contract, config.appId, config.engine)
+        val failover = config.baseUrlsProvider?.let { Failover(it) } ?: Failover(config.baseUrls)
+        _client = AuthedClient(
+            HttpTransport(failover, config.appId, config.engine, config.getRetries, requestTimeoutMs = config.requestTimeoutMs),
+            storage.tokens, config.contract, config.refreshMarginSeconds,
+        )
     }
 
     /** Làm mới phiên ngay — xem [AuthedClient.refreshNow]. */

@@ -22,7 +22,7 @@ class EndpointsTest {
 
     @Test fun authPathsAreMatchedExactlyNotGuessedFromTheName() {
         val c = PlainJsonContract(Endpoints.taper())
-        assertTrue(c.isAuthPath("/api/v2/auth/login")); assertTrue(c.isAuthPath("/api/v2/auth/refresh")); assertTrue(c.isAuthPath("/api/v2/auth/logout?all=1"))
+        assertTrue(c.isAuthPath("/api/v2/auth/login")); assertTrue(c.isAuthPath("/api/v2/auth/refresh")); assertFalse(c.isAuthPath("/api/v2/auth/logout?all=1"), "đăng xuất cần Bearer (server bắt xác thực để thu hồi phiên)")
         assertFalse(c.isAuthPath("/api/v2/activities/login-history"), "đường thường có chữ login không bị coi là đường đăng nhập")
         assertFalse(c.isAuthPath("/api/v2/me/refresh-rate"))
     }

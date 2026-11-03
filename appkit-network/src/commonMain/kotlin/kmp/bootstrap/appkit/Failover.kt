@@ -11,17 +11,37 @@ import kotlin.time.TimeSource
  * thì thử địa chỉ kế tiếp; thành công ở đâu nhớ ở đó, sau [retryPrimaryAfter] thử lại tên chính.
  * Một địa chỉ duy nhất = không làm gì.
  */
-class Failover(val baseUrls: List<String>, private val retryPrimaryAfter: Duration = 15.minutes) {
-    init { require(baseUrls.isNotEmpty()) { "at least one base URL is required" } }
+class Failover(private val source: () -> List<String>, private val retryPrimaryAfter: Duration = 15.minutes) {
+    /** Danh sách cố định (trường hợp thường gặp). */
+    constructor(baseUrls: List<String>, retryPrimaryAfter: Duration = 15.minutes) : this({ baseUrls }, retryPrimaryAfter)
 
     @Volatile private var active = 0
     @Volatile private var switchedAt: TimeMark? = null
+    @Volatile private var known: List<String> = emptyList()
+
+    /**
+     * Danh sách địa chỉ HIỆN TẠI. Nguồn có thể đổi lúc chạy (app cho người dùng tự nhập địa chỉ máy chủ): đổi thì quên địa chỉ đang chạy
+     * tốt và quay về địa chỉ đầu danh sách mới — phiên (token) không liên quan tới địa chỉ nên giữ nguyên.
+     */
+    val baseUrls: List<String> get() {
+        val list = source()
+        require(list.isNotEmpty()) { "at least one base URL is required" }
+        if (list != known) { known = list; active = 0; switchedAt = null }
+
+        return list
+    }
+
+    init { baseUrls }
 
     fun current(): String {
+        val urls = baseUrls
         val mark = switchedAt
         if (active != 0 && mark != null && mark.elapsedNow() >= retryPrimaryAfter) { active = 0; switchedAt = null }
-        return baseUrls[active].trimEnd('/')
+        return urls[active.coerceAtMost(urls.lastIndex)].trimEnd('/')
     }
+
+    /** `url` tuyệt đối có nằm dưới một địa chỉ máy chủ của mình không? Dùng để KHÔNG gửi token tới URL của bên thứ ba. */
+    fun owns(url: String): Boolean = baseUrls.any { val base = it.trimEnd('/'); url == base || url.startsWith("$base/") }
 
     fun markWorking(url: String) {
         val i = baseUrls.indexOfFirst { it.trimEnd('/') == url }

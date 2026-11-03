@@ -89,7 +89,7 @@ class AuthedClient(
     }
 
     private suspend fun network(method: String, path: String, body: JsonObject?, auth: Boolean, timeoutMs: Long?): RawResponse {
-        val useAuth = auth && !contract.isAuthPath(path)
+        val useAuth = auth && !contract.isAuthPath(path) && transport.mayCarryToken(path)
         if (useAuth) refreshIfExpiring()
         val used = if (useAuth) tokens.access() else null
         val first = transport.execute(method, path, body, used, timeoutMs)
@@ -114,6 +114,7 @@ class AuthedClient(
      * Dùng cho `AsyncAvatar` / `AsyncImage` ở appkit-ui.
      */
     suspend fun getBytes(path: String, auth: Boolean = true): ByteArray {
+        val auth = auth && transport.mayCarryToken(path) // URL của bên thứ ba: không gắn token
         val used = if (auth) tokens.access() else null
         var (status, bytes) = transport.executeBytes(path, used)
         if (auth && status == 401 && refreshSession(used)) { val retried = transport.executeBytes(path, tokens.access()); status = retried.first; bytes = retried.second }
@@ -127,6 +128,7 @@ class AuthedClient(
      * đọc câu báo lỗi của server bằng `errorMessageOf(RawResponse(r.status, r.text(), r.requestId))`.
      */
     suspend fun download(path: String, auth: Boolean = true, timeoutMs: Long? = null): FileResponse {
+        val auth = auth && transport.mayCarryToken(path) // URL của bên thứ ba: không gắn token
         val used = if (auth) tokens.access() else null
         val first = transport.download(path, used, timeoutMs)
         if (!auth || first.status in 200..299 || !contract.isTokenRejected(first.status, first.text())) return first
@@ -137,6 +139,7 @@ class AuthedClient(
 
     /** Gửi form `multipart/form-data` — gắn JWT, bị từ chối thì làm mới phiên rồi gửi lại một lần (như [raw]). */
     suspend fun upload(method: String, path: String, parts: List<FormPart>, auth: Boolean = true, timeoutMs: Long? = null): RawResponse {
+        val auth = auth && transport.mayCarryToken(path)
         val used = if (auth) tokens.access() else null
         val first = transport.upload(method, path, parts, used, timeoutMs)
         if (!auth || !contract.isTokenRejected(first.status, first.body)) return first

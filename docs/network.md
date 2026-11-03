@@ -26,7 +26,7 @@ AppKit.start(AppKitConfig(
 
 ## Đăng nhập
 
-Đăng nhập/đăng ký/làm mới/đăng xuất **không** tự gắn token và không tự làm mới (khớp chính xác với `Endpoints`, không đoán theo tên đường dẫn).
+Đăng nhập/đăng ký/làm mới **không** tự gắn token và không tự làm mới (khớp chính xác với `Endpoints`, không đoán theo tên đường dẫn). **Đăng xuất thì có gắn Bearer**: server thường bắt xác thực để thu hồi phiên (Taper chặn access token hiện tại).
 
 <!-- snippet: network-login -->
 ```kotlin

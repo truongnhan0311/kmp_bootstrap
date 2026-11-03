@@ -23,8 +23,12 @@ data class Endpoints(
     /** Đường dẫn riêng của app khai trong [extra]; thiếu thì báo lỗi rõ ràng thay vì gọi nhầm. */
     operator fun get(name: String): String = extra[name] ?: error("Endpoint '$name' is not defined in Endpoints.extra")
 
-    /** Các đường đăng nhập/làm mới/đăng xuất — KHÔNG tự gắn token hay tự làm mới (tránh vòng lặp). */
-    internal val authPaths: Set<String> get() = setOfNotNull(login, register, refresh, logout)
+    /**
+     * Các đường KHÔNG tự gắn token và KHÔNG tự làm mới: đăng nhập, đăng ký, làm mới (tránh vòng lặp, và các đường này không có phiên để gắn).
+     * Đăng xuất KHÔNG nằm ở đây: thu hồi phiên là việc của người đang đăng nhập nên server thường đặt nó sau middleware xác thực
+     * (Taper: để đưa access token hiện tại vào danh sách chặn) — thiếu Bearer thì đăng xuất âm thầm thất bại, refresh token vẫn sống.
+     */
+    internal val authPaths: Set<String> get() = setOfNotNull(login, register, refresh)
 
     fun requireDevices(): String = devices ?: error("Endpoints.devices is required for push notifications")
 

@@ -24,6 +24,8 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
 import kotlin.time.TimeSource
 
+internal fun isAbsoluteUrl(path: String) = path.startsWith("http://") || path.startsWith("https://")
+
 data class RawResponse(val status: Int, val body: String, val requestId: String?)
 
 /**
@@ -88,11 +90,17 @@ class HttpTransport(
         }
     }
 
+    /** Đường tương đối thì nối vào địa chỉ máy chủ; URL tuyệt đối (ảnh đại diện do server trả…) dùng nguyên. */
+    private fun target(base: String, path: String) = if (isAbsoluteUrl(path)) path else base + path
+
+    /** Request tới `path` có được gắn token không? Đường tương đối và URL thuộc máy chủ của mình: có. URL của bên thứ ba: KHÔNG BAO GIỜ. */
+    fun mayCarryToken(path: String): Boolean = !isAbsoluteUrl(path) || failover.owns(path)
+
     /** Tải thân phản hồi dạng byte (ảnh, tệp) — cùng failover và phân loại lỗi như [execute]; không thử lại. Trả (mã HTTP, byte). */
     suspend fun executeBytes(path: String, bearer: String? = null): Pair<Int, ByteArray> {
         val outcome = runCatchingNetwork("GET", path) {
             val base = failover.current()
-            val response = http.request { url(base + path); if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer") }
+            val response = http.request { url(target(base, path)); if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer") }
             failover.markWorking(base)
             response.status.value to response.readRawBytes()
         }
@@ -104,7 +112,7 @@ class HttpTransport(
         runCatchingNetwork("GET", path) {
             val base = failover.current()
             val response = http.request {
-                url(base + path)
+                url(target(base, path))
                 if (timeoutMs != null) timeout { requestTimeoutMillis = timeoutMs }
                 if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer")
             }
@@ -121,7 +129,7 @@ class HttpTransport(
             val base = failover.current()
             val response = http.request {
                 this.method = HttpMethod.parse(method)
-                url(base + path)
+                url(target(base, path))
                 if (timeoutMs != null) timeout { requestTimeoutMillis = timeoutMs }
                 header(HttpHeaders.Accept, "application/json")
                 if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer")
@@ -165,7 +173,7 @@ class HttpTransport(
         val started = TimeSource.Monotonic.markNow()
         val response = http.request {
             this.method = HttpMethod.parse(method)
-            url(base + path)
+            url(target(base, path))
             if (timeoutMs != null) timeout { requestTimeoutMillis = timeoutMs }
             header(HttpHeaders.Accept, "application/json")
             if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer")

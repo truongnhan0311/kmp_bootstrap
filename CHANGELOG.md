@@ -3,6 +3,7 @@
 Phiên bản theo `0.x`: API còn có thể đổi, mỗi thay đổi phá API được ghi ở đây.
 
 ## 0.1.0
+- **Sửa lỗi:** `AuthedClient.logout` giờ GỬI KÈM Bearer (trước đây đường đăng xuất bị coi là "không gắn token" nên server đặt logout sau middleware xác thực như Taper trả 401 và đăng xuất âm thầm thất bại — refresh token vẫn sống, access token không bị chặn). `Endpoints.authPaths` chỉ còn login/register/refresh. Hành vi đổi cho `EnvelopeContract` (qt-depot): logout cũng có Bearer — vô hại nếu server không cần.
 - `appkit-network`: `AuthedClient.download` (tải tệp kèm header `Content-Disposition`/`Content-Type`, `FileResponse.filename`) và `AuthedClient.upload` (`multipart/form-data`, `FormPart`) — cùng làm mới phiên một lần như `raw`. Thêm khi chuyển Taper sang kit (xuất dữ liệu, tải ảnh đại diện).
 - **Sửa lỗi build trên Mac/CI** (phát hiện khi dựng Taper trên Codemagic, 02–03/11/2026; không lộ ra ở `-PdesktopOnly=true`): (1) mọi `*/android.gradle.kts` gọi thẳng `com.android.build.gradle.LibraryExtension` → "Unresolved reference: android"; nay cấu hình bằng `withGroovyBuilder` (không phụ thuộc lớp AGP). (2) `appkit-network` dùng `val iosMain by getting` → "KotlinSourceSet with name 'iosMain' not found"; nay lấy source set theo từng target (`iosArm64Main`…). Hai lỗi này sẽ làm hỏng mọi app dùng kit khi dựng bản Android/iOS đầy đủ.
 - `appkit-core`: `Navigator` (ngăn xếp điều hướng), `DeepLinks` (link → route), `AppSettings` (giao diện + ngôn ngữ được nhớ, quy tắc lựa chọn gần nhất thắng), `ThemeMode` (chuyển từ `appkit-ui`).
