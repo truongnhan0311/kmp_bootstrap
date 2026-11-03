@@ -3,6 +3,7 @@
 Phiên bản theo `0.x`: API còn có thể đổi, mỗi thay đổi phá API được ghi ở đây.
 
 ## 0.1.0
+- **Sửa lỗi build iOS (Codemagic, Kotlin 2.1.21):** `cryptography-kotlin` 0.5.0 build bằng Kotlin 2.2 nên klib iOS có ABI 2.2.0, compiler 2.1.x báo "incompatible ABI version". Hạ về 0.4.0 (build bằng Kotlin 2.0.20, đã đọc manifest 8 klib iOS để chắc) và dùng provider theo nền tảng (`provider-jdk` cho Android/desktop, `provider-apple` cho iOS) vì `provider-optimal` chỉ có từ 0.5.0. Nâng lại khi kit và app cùng lên Kotlin 2.2.
 - **Gỡ tên riêng của backend khỏi kit (phá API, chưa phát hành):** preset đường dẫn kiểu phẳng giờ là `Endpoints.flat()` (`/login`, `/refresh`, `/logout`, tiền tố mặc định `/api`) và hợp đồng push một-lần-POST là `PostPushContract`. Đường dẫn riêng của một backend tự khai trong app bằng `Endpoints(login = …, refresh = …, logout = …)`, không nằm trong kit.
 - **Sửa lỗi:** `AuthedClient.logout` giờ GỬI KÈM Bearer (trước đây đường đăng xuất bị coi là "không gắn token" nên server đặt logout sau middleware xác thực như Taper trả 401 và đăng xuất âm thầm thất bại — refresh token vẫn sống, access token không bị chặn). `Endpoints.authPaths` chỉ còn login/register/refresh. Hành vi đổi cho `EnvelopeContract`: logout cũng có Bearer — vô hại nếu server không cần.
 - `appkit-network`: `AuthedClient.download` (tải tệp kèm header `Content-Disposition`/`Content-Type`, `FileResponse.filename`) và `AuthedClient.upload` (`multipart/form-data`, `FormPart`) — cùng làm mới phiên một lần như `raw`. Thêm khi chuyển Taper sang kit (xuất dữ liệu, tải ảnh đại diện).

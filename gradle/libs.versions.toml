@@ -7,7 +7,8 @@ serialization = "1.8.1"
 datetime = "0.6.2"
 coroutines = "1.10.2"
 okio = "3.9.1"
-cryptography = "0.5.0"
+# 0.4.0 (build bằng Kotlin 2.0.20) — 0.5.0+ build bằng Kotlin 2.2 nên compiler 2.1.x KHÔNG đọc được klib iOS (ABI 2.2.0). Nâng khi cả kit và app lên Kotlin 2.2.
+cryptography = "0.4.0"
 firebaseMessaging = "24.1.0"
 # AGP chỉ dùng khi build Android (cần Google Maven). Đổi theo Android Studio của bạn nếu nó đòi bản mới hơn.
 agp = "8.9.3"
@@ -21,7 +22,8 @@ kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography" }
-cryptography-optimal = { module = "dev.whyoleg.cryptography:cryptography-provider-optimal", version.ref = "cryptography" }
+cryptography-jdk = { module = "dev.whyoleg.cryptography:cryptography-provider-jdk", version.ref = "cryptography" }
+cryptography-apple = { module = "dev.whyoleg.cryptography:cryptography-provider-apple", version.ref = "cryptography" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessaging" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 okio-fakefilesystem = { module = "com.squareup.okio:okio-fakefilesystem", version.ref = "okio" }

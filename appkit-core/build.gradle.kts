@@ -34,15 +34,20 @@ kotlin {
             api(libs.kotlinx.datetime)
             api(libs.okio)
             api(libs.cryptography.core)
-            implementation(libs.cryptography.optimal)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.okio.fakefilesystem)
         }
+        // Nhà cung cấp mã hoá theo nền tảng (không dùng provider-optimal: nó chỉ có từ 0.5.0, build bằng Kotlin 2.2).
+        val desktopMain by getting { dependencies { implementation(libs.cryptography.jdk) } }
         if (!desktopOnly) {
-            val androidMain by getting { dependencies { implementation(libs.androidx.security.crypto) } }
+            val androidMain by getting { dependencies { implementation(libs.androidx.security.crypto); implementation(libs.cryptography.jdk) } }
+            // Source set THEO TỪNG TARGET (không dùng `iosMain by getting`: nó được tạo lười, xem ghi chú ở appkit-network/build.gradle.kts).
+            listOf("iosX64Main", "iosArm64Main", "iosSimulatorArm64Main").forEach { name ->
+                getByName(name).dependencies { implementation(libs.cryptography.apple) }
+            }
         }
     }
 }
