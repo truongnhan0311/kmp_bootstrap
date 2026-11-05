@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Sinh MỘT DỰNG ÁN APP MỚI (Android + iOS + desktop để chạy thử) đã nối sẵn kmp_bootstrap — "bootstrap" đúng nghĩa.
-//   node tools/new-app.mjs --name my-app --id com.acme.myapp --out ../my-app [--modules network,push,reminder,platform,ui] [--css ../web/src/index.css] [--bootstrap ../kmp_bootstrap]
+//   node tools/new-app.mjs --name my-app --id com.acme.myapp --out ../my-app [--modules network,push,reminder,platform,ui,mqtt,webrtc] [--css ../web/src/index.css] [--bootstrap ../kmp_bootstrap]
 // Chạy xong: mở `my-app` bằng Android Studio (Android) hoặc `cd iosApp && xcodegen && open *.xcodeproj` (iOS); chạy thử desktop: `./gradlew :composeApp:run`.
 import { mkdirSync, writeFileSync, cpSync, existsSync, readFileSync } from 'node:fs'
 import { join, relative, resolve, dirname } from 'node:path'
@@ -11,13 +11,13 @@ const args = process.argv.slice(2)
 const opt = (n, d) => { const i = args.indexOf('--' + n); return i >= 0 ? args[i + 1] : d }
 const here = dirname(fileURLToPath(import.meta.url)), bootstrap = resolve(opt('bootstrap', join(here, '..')))
 const name = opt('name'), id = opt('id'), outArg = opt('out')
-if (!name || !id || !outArg) { console.error('Cách dùng: new-app.mjs --name my-app --id com.acme.myapp --out ../my-app [--modules network,push,reminder,platform,ui] [--css file.css] [--bootstrap đường/dẫn]'); process.exit(2) }
+if (!name || !id || !outArg) { console.error('Cách dùng: new-app.mjs --name my-app --id com.acme.myapp --out ../my-app [--modules network,push,reminder,platform,ui,mqtt,webrtc] [--css file.css] [--bootstrap đường/dẫn]'); process.exit(2) }
 if (!/^[a-z][a-z0-9-]*$/.test(name)) { console.error('--name chỉ gồm chữ thường, số, gạch ngang (ví dụ my-app)'); process.exit(2) }
 if (!/^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/.test(id)) { console.error('--id là package kiểu com.acme.myapp (chữ thường, có ít nhất một dấu chấm)'); process.exit(2) }
 const out = resolve(outArg)
 if (existsSync(out) && existsSync(join(out, 'settings.gradle.kts'))) { console.error(`${out} đã có dự án — chọn thư mục khác`); process.exit(1) }
 const modules = new Set((opt('modules', 'network,ui')).split(',').map(s => s.trim()).filter(Boolean))
-const valid = ['network', 'push', 'reminder', 'platform', 'ui']
+const valid = ['network', 'push', 'reminder', 'platform', 'ui', 'mqtt', 'webrtc']
 for (const m of modules) if (!valid.includes(m)) { console.error(`Module lạ: ${m} (có: ${valid.join(', ')})`); process.exit(2) }
 if (modules.has('push')) modules.add('network')
 const pkg = id, pkgPath = pkg.replaceAll('.', '/')

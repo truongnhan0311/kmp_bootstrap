@@ -31,6 +31,8 @@ Lần đầu tải thư viện từ Maven Central mất vài phút. Nếu gặp 
 | phiên đăng nhập, giao diện/ngôn ngữ được nhớ | `appkit-network` + `appkit-core` | `docs/session.md` |
 | **tạo app mới** | `tools/new-app.mjs` | `docs/new-app.md` |
 | component Material 3 + theme từ CSS | `appkit-ui` | `docs/ui.md` |
+| kênh MQTT thời gian thực (Last Will, QoS 1, nối lại) | `appkit-mqtt` | `docs/mqtt.md` |
+| WebRTC: peer, DataChannel, SDP, ICE | `appkit-webrtc` | `docs/webrtc.md` |
 
 Mẫu app tối thiểu: `samples/core-only/` (chỉ lấy `appkit-core`; chạy `./gradlew -PdesktopOnly=true run` trong thư mục đó).
 
@@ -39,7 +41,7 @@ Mẫu app tối thiểu: `samples/core-only/` (chỉ lấy `appkit-core`; chạy
 - **Không đưa đường dẫn API, chữ hiện cho người dùng, hay màu vào code lẻ.** Đường dẫn → `Endpoints`; chữ cho người dùng → `Language`/`Msg` (đủ en/vi/zh/es,
   test bắt thiếu bản dịch); màu → token CSS qua `tools/shadcn-theme.mjs`.
 - **Dòng log và thông báo cho lập trình viên (`require`/`check`) luôn tiếng Anh.** Mật khẩu không bao giờ vào log; token chỉ qua `Redactor`.
-- Phụ thuộc đi một chiều: `core ← network ← push`, `core ← reminder`, `core ← platform`, `core ← ui` (`ui` KHÔNG biết `network`: tải ảnh qua tham số `fetch`). Đừng để `core` biết gì về mạng.
+- Phụ thuộc đi một chiều: `core ← network ← push`, `core ← reminder`, `core ← platform`, `core ← ui`, `core ← mqtt`, `core ← webrtc` (`ui` KHÔNG biết `network`: tải ảnh qua tham số `fetch`). Đừng để `core` biết gì về mạng.
 - Cái gì theo nền tảng thì `expect/actual` (`androidMain`, `iosMain`, `desktopMain`); phần chung viết ở `commonMain` và **phải có test chạy được trên JVM**.
 - Thêm tính năng → thêm test, và thêm ví dụ vào file `*Examples.kt` (đoạn giữa `// region: tên` … `// endregion`) rồi đặt cặp thẻ `snippet` trong `docs/*.md` (cú pháp: đầu file `tools/sync-snippets.mjs`; xem mẫu trong `docs/core.md`),
   chạy `node tools/sync-snippets.mjs`. Tài liệu chép từ code đã chạy nên không bao giờ lệch.
@@ -49,5 +51,5 @@ Mẫu app tối thiểu: `samples/core-only/` (chỉ lấy `appkit-core`; chạy
 ## Trung thực về những gì đã kiểm
 
 - **Đã kiểm (JVM, mỗi lần đổi code):** toàn bộ logic chung. Chạy `./gradlew -PdesktopOnly=true desktopTest`.
-- **Chưa kiểm — đừng báo "chạy được" khi chưa thử trên máy thật:** mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, Swift),
+- **Chưa kiểm — đừng báo "chạy được" khi chưa thử trên máy thật:** mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, libwebrtc Android, Swift),
   build Android/iOS, runtime của `appkit-ui`. Khi sửa các phần này, nói rõ là chưa chạy trên thiết bị.

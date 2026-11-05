@@ -18,4 +18,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "kmp_bootstrap"
-include(":appkit-core", ":appkit-network", ":appkit-push", ":appkit-reminder", ":appkit-platform", ":appkit-ui")
+include(":appkit-core", ":appkit-network", ":appkit-push", ":appkit-reminder", ":appkit-platform", ":appkit-ui", ":appkit-mqtt", ":appkit-webrtc")

@@ -16,6 +16,8 @@ Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các mo
 | `appkit-push` | thông báo đẩy FCM: đăng ký thiết bị, điều hướng khi bấm | network (+ Firebase trên Android) |
 | `appkit-platform` | mở link, copy, chia sẻ, chọn ảnh, múi giờ qua một interface (có bản giả để test) | core |
 | `appkit-reminder` | nhắc giờ bằng thông báo cục bộ (chạy cả khi app tắt), nhắc lặp đúng giờ qua giờ mùa hè | core |
+| `appkit-mqtt` | client MQTT 3.1.1 qua WebSocket: Last Will, QoS 0/1, keepAlive, nối lại có chờ ngẫu nhiên, tự đăng ký lại chủ đề | core + Ktor |
+| `appkit-webrtc` | interface WebRTC chung (`RtcEngine`, `PeerConnection`, DataChannel, `replaceTrack`), `SdpTools` (thứ tự codec, kiểm DTLS), `CandidateQueue`, `FakeRtcEngine`; Android bằng libwebrtc, iOS app tự cài | core (+ libwebrtc trên Android) |
 | `appkit-ui` | component Material 3 kiểu shadcn, theme sinh từ CSS của web, layout kiểu Tailwind, block kiểu Bootstrap, icon SVG, app mẫu 5 tab | core + Compose |
 
 Chỉ cần mã hoá và log? Lấy `appkit-core` — không có Ktor, không có Firebase (đã kiểm: `samples/core-only`).

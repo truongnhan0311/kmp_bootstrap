@@ -11,7 +11,7 @@ node tools/new-app.mjs --name my-app --id com.acme.myapp --out ../my-app --modul
 | `--name` | tên dự án, chữ thường + gạch ngang (`my-app`) |
 | `--id` | package/bundle id (`com.acme.myapp`) |
 | `--out` | thư mục đích (phải chưa có dự án) |
-| `--modules` | module dùng, cách nhau dấu phẩy: `network`, `push`, `reminder`, `platform`, `ui` (mặc định `network,ui`; `push` tự kéo `network`) |
+| `--modules` | module dùng, cách nhau dấu phẩy: `network`, `push`, `reminder`, `platform`, `ui`, `mqtt`, `webrtc` (mặc định `network,ui`; `push` tự kéo `network`) |
 | `--css` | CSS của web để sinh màu (kèm `--light`/`--dark` nếu selector khác shadcn mặc định) |
 | `--bootstrap` | đường dẫn tới kmp_bootstrap (mặc định: thư mục chứa script) |
 
