@@ -3,6 +3,7 @@
 Phiên bản theo `0.x`: API còn có thể đổi, mỗi thay đổi phá API được ghi ở đây.
 
 ## Chưa phát hành
+- `appkit-mqtt` (mới, cần core + Ktor): `MqttClient` (MQTT 3.1.1, tự nối lại có giãn cách, mật khẩu gọi lại mỗi lần nối, Last Will, QoS 1 gửi lại với cờ DUP sau khi nối lại, `subscribe` trả `Flow` có đếm người nghe, keepalive), `MqttCodec`, `MqttTopic`, `WebSocketConnector` (mọi nền tảng), `TcpConnector` (JVM). Đã chạy với mochi-mqtt thật qua WebSocket và TCP. Tách từ Recam.
 - `appkit-core`: `AppCrypto.hmacSha256`, `AppCrypto.constantTimeEquals`, `AppCrypto.randomString(length, alphabet)` (lấy đều, không lệch kiểu `byte % n`), `Hex.encode/decode` (chữ thường như Go).
 - `appkit-iot` (mới, chỉ cần core): `DeviceSigner` (ký request của thiết bị kiểu Tuya, kiểm lệch giờ), `MqttDeviceAuth` (mật khẩu MQTT của thiết bị), `Envelope`/`EnvelopeCodec` (khung `header`+`msg`, tên trường như server Go, không ném lỗi với dữ liệu lạ), `DuplicateFilter`, `PairingCode`, `DpSchema` (data point có kiểu). Khớp từng byte với server Go của Recam (vector sinh từ mã Go). Tách từ dự án Recam.
 
