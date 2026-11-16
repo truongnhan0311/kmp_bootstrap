@@ -3,6 +3,7 @@ package kmp.bootstrap.appkit
 import dev.whyoleg.cryptography.BinarySize.Companion.bits
 import dev.whyoleg.cryptography.CryptographyProvider
 import dev.whyoleg.cryptography.algorithms.AES
+import dev.whyoleg.cryptography.algorithms.HMAC
 import dev.whyoleg.cryptography.algorithms.PBKDF2
 import dev.whyoleg.cryptography.algorithms.SHA256
 import dev.whyoleg.cryptography.random.CryptographyRandom
@@ -63,11 +64,62 @@ object AppCrypto {
     /** SHA-256 (để so sánh/định danh, KHÔNG dùng để băm mật khẩu). */
     suspend fun sha256(data: ByteArray): ByteArray = provider.get(SHA256).hasher().hash(data)
 
+    /** HMAC-SHA256 (RFC 2104): ký/kiểm request với khoá chung. Khoá dài bao nhiêu cũng được. So sánh chữ ký bằng [constantTimeEquals]. */
+    suspend fun hmacSha256(key: ByteArray, data: ByteArray): ByteArray =
+        provider.get(HMAC).keyDecoder(SHA256).decodeFromByteArray(HMAC.Key.Format.RAW, key).signatureGenerator().generateSignature(data)
+
+    /** So sánh không lộ thời gian (dùng khi kiểm chữ ký/mã): thời gian chạy không phụ thuộc vị trí byte khác đầu tiên. */
+    fun constantTimeEquals(a: ByteArray, b: ByteArray): Boolean {
+        if (a.size != b.size) return false
+        var diff = 0
+        for (i in a.indices) diff = diff or (a[i].toInt() xor b[i].toInt())
+        return diff == 0
+    }
+
+    /**
+     * Chuỗi ngẫu nhiên an toàn (CSPRNG) gồm [length] ký tự lấy đều từ [alphabet] (không lệch: bỏ byte rơi vào phần dư).
+     * Ví dụ mã ghép đôi dễ đọc: `randomString(8, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789")`.
+     */
+    fun randomString(length: Int, alphabet: String): String {
+        require(length >= 0) { "length must be >= 0" }
+        require(alphabet.length in 2..256) { "alphabet must have 2..256 characters" }
+        val limit = 256 - 256 % alphabet.length   // byte >= limit bị bỏ để mọi ký tự có cùng xác suất
+        val out = StringBuilder(length)
+        while (out.length < length) {
+            for (b in CryptographyRandom.nextBytes(length * 2)) {
+                val v = b.toInt() and 0xff
+                if (v < limit && out.length < length) out.append(alphabet[v % alphabet.length])
+            }
+        }
+        return out.toString()
+    }
+
     private suspend fun deriveKey(password: String, salt: ByteArray): ByteArray =
         provider.get(PBKDF2).secretDerivation(SHA256, ITERATIONS, 256.bits, salt).deriveSecret(password.encodeToByteArray()).toByteArray()
 
     private suspend fun cipherOf(key: ByteArray) = run {
         require(key.size == 32) { "key must be exactly 32 bytes (AES-256)" }
         provider.get(AES.GCM).keyDecoder().decodeFromByteArray(AES.Key.Format.RAW, key).cipher()
+    }
+}
+
+/** Hex chữ thường, như `hex.EncodeToString` của Go và phần lớn server. */
+object Hex {
+    private const val DIGITS = "0123456789abcdef"
+
+    fun encode(bytes: ByteArray): String {
+        val out = CharArray(bytes.size * 2)
+        bytes.forEachIndexed { i, b -> val v = b.toInt() and 0xff; out[2 * i] = DIGITS[v shr 4]; out[2 * i + 1] = DIGITS[v and 0xf] }
+        return out.concatToString()
+    }
+
+    /** Nhận cả chữ hoa lẫn thường; chuỗi lẻ hoặc có ký tự lạ → [IllegalArgumentException]. */
+    fun decode(text: String): ByteArray {
+        require(text.length % 2 == 0) { "hex length must be even" }
+        return ByteArray(text.length / 2) { i ->
+            val hi = text[2 * i].digitToIntOrNull(16); val lo = text[2 * i + 1].digitToIntOrNull(16)
+            require(hi != null && lo != null) { "invalid hex character" }
+            ((hi shl 4) or lo).toByte()
+        }
     }
 }

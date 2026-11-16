@@ -2,6 +2,10 @@
 
 Phiên bản theo `0.x`: API còn có thể đổi, mỗi thay đổi phá API được ghi ở đây.
 
+## Chưa phát hành
+- `appkit-core`: `AppCrypto.hmacSha256`, `AppCrypto.constantTimeEquals`, `AppCrypto.randomString(length, alphabet)` (lấy đều, không lệch kiểu `byte % n`), `Hex.encode/decode` (chữ thường như Go).
+- `appkit-iot` (mới, chỉ cần core): `DeviceSigner` (ký request của thiết bị kiểu Tuya, kiểm lệch giờ), `MqttDeviceAuth` (mật khẩu MQTT của thiết bị), `Envelope`/`EnvelopeCodec` (khung `header`+`msg`, tên trường như server Go, không ném lỗi với dữ liệu lạ), `DuplicateFilter`, `PairingCode`, `DpSchema` (data point có kiểu). Khớp từng byte với server Go của Recam (vector sinh từ mã Go). Tách từ dự án Recam.
+
 ## 0.1.0
 - **Sửa lỗi build iOS lần 2 (Codemagic):** `Storage.ios.kt` — Keychain viết lại bằng API CoreFoundation thuần (từ điển CF + `CFDictionaryAddValue`); bản cũ dùng `NSMutableDictionary.setObject(CFBridgingRelease(kSec…))` báo "Argument type mismatch: Any? / NSCopyingProtocol" và nhả nhầm hằng số dùng chung. `Log.ios.kt` — `NSLog` dùng `%@` (tham số Kotlin là NSString; `%s` sẽ crash lúc chạy). Chưa biên dịch được ở môi trường dựng của agent (không có Kotlin/Native): chỉ Mac/Codemagic mới kiểm được.
 - **Sửa lỗi build iOS (Codemagic, Kotlin 2.1.21):** `cryptography-kotlin` 0.5.0 build bằng Kotlin 2.2 nên klib iOS có ABI 2.2.0, compiler 2.1.x báo "incompatible ABI version". Hạ về 0.4.0 (build bằng Kotlin 2.0.20, đã đọc manifest 8 klib iOS để chắc) và dùng provider theo nền tảng (`provider-jdk` cho Android/desktop, `provider-apple` cho iOS) vì `provider-optimal` chỉ có từ 0.5.0. Nâng lại khi kit và app cùng lên Kotlin 2.2.

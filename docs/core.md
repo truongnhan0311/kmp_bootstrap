@@ -55,6 +55,16 @@ val bytes = AppCrypto.decrypt(AppCrypto.encrypt("abc".encodeToByteArray(), key),
 ```
 <!-- /snippet -->
 
+**Ký và kiểm bằng khoá chung (HMAC-SHA256)**, `Hex` (chữ thường, như server), so sánh không lộ thời gian, và chuỗi ngẫu nhiên lấy **đều** từ một bảng chữ (không lệch như `byte % n`):
+
+<!-- snippet: core-hmac -->
+```kotlin
+val sig = Hex.encode(AppCrypto.hmacSha256("khoá chung".encodeToByteArray(), "GET\n/v1/me".encodeToByteArray()))   // hex chữ thường như server Go
+val ok = AppCrypto.constantTimeEquals(Hex.decode(sig), AppCrypto.hmacSha256("khoá chung".encodeToByteArray(), "GET\n/v1/me".encodeToByteArray()))
+val code = AppCrypto.randomString(8, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789")     // mã dễ đọc, không có 0/O/1/I
+```
+<!-- /snippet -->
+
 ## TtlCache — cache có hạn, dùng ở đâu cũng được
 
 Không dính HTTP. `getOrLoad` an toàn khi nhiều nơi gọi cùng lúc: cùng một khoá chỉ chạy **một** lần tải. Lỗi khi tải không được lưu;

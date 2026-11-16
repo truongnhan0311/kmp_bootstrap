@@ -50,6 +50,15 @@ class CoreExamples {
         assertEquals("nội dung bí mật", text); assertEquals("abc", bytes.decodeToString())
     }
 
+    @Test fun hmac() = runBlocking {
+        // region: core-hmac
+        val sig = Hex.encode(AppCrypto.hmacSha256("khoá chung".encodeToByteArray(), "GET\n/v1/me".encodeToByteArray()))   // hex chữ thường như server Go
+        val ok = AppCrypto.constantTimeEquals(Hex.decode(sig), AppCrypto.hmacSha256("khoá chung".encodeToByteArray(), "GET\n/v1/me".encodeToByteArray()))
+        val code = AppCrypto.randomString(8, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789")     // mã dễ đọc, không có 0/O/1/I
+        // endregion
+        assertEquals(64, sig.length); assertEquals(true, ok); assertEquals(8, code.length)
+    }
+
     @Test fun ttlCache() = runBlocking {
         // region: core-ttlcache
         val profiles = TtlCache<String, String>(ttl = 1.hours)

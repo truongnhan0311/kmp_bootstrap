@@ -11,10 +11,11 @@ Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các mo
 
 | Module | Có gì | Kéo theo |
 |---|---|---|
-| `appkit-core` | `Language` (chữ theo ngôn ngữ), `Navigator` + `DeepLinks` (điều hướng), `AppSettings` (giao diện + ngôn ngữ được nhớ), `SvgParser` (đọc SVG), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
+| `appkit-core` | `Language` (chữ theo ngôn ngữ), `Navigator` + `DeepLinks` (điều hướng), `AppSettings` (giao diện + ngôn ngữ được nhớ), `SvgParser` (đọc SVG), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256, HMAC-SHA256, chuỗi ngẫu nhiên không lệch), `Hex`, `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
 | `appkit-network` | `Session` (đang kiểm tra/đăng nhập/đăng xuất), `AuthedClient` (JWT tự gắn + tự làm mới phiên), `HttpTransport` (failover, timeout, thử lại GET), `get/post/put/patch/delete`, `ApiError` có phân loại, cache GET, `Endpoints` (một chỗ khai báo đường dẫn), `AppKit.start()` | core + Ktor |
 | `appkit-push` | thông báo đẩy FCM: đăng ký thiết bị, điều hướng khi bấm | network (+ Firebase trên Android) |
 | `appkit-platform` | mở link, copy, chia sẻ, chọn ảnh, múi giờ qua một interface (có bản giả để test) | core |
+| `appkit-iot` | giao thức thiết bị kiểu Tuya: thiết bị ký request (HMAC), mật khẩu MQTT của thiết bị, khung thông điệp `header`+`msg` có chống trùng, mã ghép đôi dễ đọc, data point có kiểu | core |
 | `appkit-reminder` | nhắc giờ bằng thông báo cục bộ (chạy cả khi app tắt), nhắc lặp đúng giờ qua giờ mùa hè | core |
 | `appkit-ui` | component Material 3 kiểu shadcn, theme sinh từ CSS của web, layout kiểu Tailwind, block kiểu Bootstrap, icon SVG, app mẫu 5 tab | core + Compose |
 
@@ -87,6 +88,7 @@ appkit-core/      Language  Log  Storage  Stores  Crypto  TtlCache  Jwt
 appkit-network/   HttpTransport  AuthedClient  Requests  Endpoints  AuthContract  Failover  ApiError  Cache  AppKit
 appkit-push/      Push  PushNavigation                       → docs/push.md
 appkit-platform/  PlatformServices (openUrl, clipboard, share, pickImage, timezone) + Fake  → docs/platform.md
+appkit-iot/       DeviceSigner  MqttDeviceAuth  Envelope  DuplicateFilter  PairingCode  DpSchema  → docs/iot.md
 appkit-reminder/  Reminders  (Android AlarmManager, iOS UNUserNotificationCenter)  → docs/reminder.md
 appkit-ui/        Theme  Components
   mỗi module: src/{commonMain,commonTest,desktopMain,androidMain,iosMain}  (expect/actual cho phần theo nền tảng)
@@ -106,7 +108,7 @@ CHANGELOG.md
 node --test tools/*.test.mjs                           # bộ sinh theme
 ```
 
-Đã kiểm trên JVM: 126 test (core 60, network 51, push 10, reminder 10, platform 5) + 9 test công cụ (bộ sinh theme, SVG → Kotlin, sinh app); dự án sinh bởi new-app biên dịch được với kit; ví dụ trong docs là code đã biên dịch và chạy.
+Đã kiểm trên JVM: 188 test (core 83, network 61, push 12, reminder 10, platform 6, iot 16) + 9 test công cụ (bộ sinh theme, SVG → Kotlin, sinh app); dự án sinh bởi new-app biên dịch được với kit; ví dụ trong docs là code đã biên dịch và chạy.
 **Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, Swift), build Android/iOS;
 `appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.
 
