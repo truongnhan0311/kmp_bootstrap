@@ -97,6 +97,24 @@ val fresh: User = AppKit.client.get("/api/v2/users/1", cache = CachePolicy(1.hou
 ```
 <!-- /snippet -->
 
+## Gửi log khi máy chủ yêu cầu
+
+`LogUploader` tải gói của `LogExport` (appkit-core) lên URL có chữ ký bằng `PUT`: không gửi `Authorization`, không ghi URL vào log
+(chữ ký là bí mật, chỉ ghi tên máy), chỉ nhận `https` (trừ `localhost`). Lỗi mạng / 5xx / 429 thử lại (`PUT` cùng URL không tạo bản trùng);
+4xx (URL hết hạn, sai chữ ký) thì dừng ngay. Gói rỗng không tải mà trả `no_logs`.
+
+<!-- snippet: net-log-upload -->
+```kotlin
+// Máy chủ gửi yêu cầu (qua push/MQTT): upload_url có chữ ký, since_ms, max_bytes.
+val bundle = LogExport.bundle(logText, LogExport.Options(sinceMillis = 0, maxBytes = 5 * 1024 * 1024))
+val result = LogUploader(storage).upload(bundle, uploadUrl)          // PUT, không gửi token; URL không bao giờ vào log
+val report = when (result) {
+    is LogUploadResult.Done -> "ok ${result.sizeBytes} bytes sha256=${result.sha256}"   // gửi kèm khi báo hoàn tất cho máy chủ
+    is LogUploadResult.Failed -> "failed ${result.code}"                              // no_logs | upload_failed
+}
+```
+<!-- /snippet -->
+
 ## Phiên đăng nhập
 
 <!-- snippet: network-session -->

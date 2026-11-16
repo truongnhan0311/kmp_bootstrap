@@ -80,6 +80,24 @@ val svg = qr.toSvg(border = 4)                                  // ghi ra file, 
 
 `QrCode.encodeBytes(bytes, ecc, boostEcc, minVersion, mask)` cho dữ liệu nhị phân hay khi muốn cố định cỡ mã; quá 2953 byte (mức Low) thì ném `IllegalArgumentException`.
 
+## LogExport và Gzip — gom log để gửi khi được yêu cầu
+
+`LogExport.bundle` đọc nội dung file của `RotatingFileSink`, lọc theo mức và thời gian, sắp theo thời gian, che thêm email và IP
+(IPv4 giữ /24, IPv6 giữ /48; mật khẩu/token đã được `Redactor` che khi ghi), ra NDJSON (`ts`, `lvl`, `comp`, `msg`), nén gzip và tính SHA-256.
+Quá `maxBytes` thì bỏ dòng **cũ**, giữ dòng mới nhất. Tải lên bằng `LogUploader` của `appkit-network`.
+
+`Gzip.compress` là gzip thuần Kotlin (DEFLATE mã Huffman cố định + LZ77), chạy giống nhau mọi nền tảng, nén log khoảng 4–10 lần;
+được kiểm bằng `GZIPInputStream` của Java ở mọi độ dài khớp 3–258 và mọi nhóm khoảng cách.
+
+<!-- snippet: core-log-export -->
+```kotlin
+// logText = RotatingFileSink.readAll(); since/maxBytes lấy từ yêu cầu của máy chủ
+val bundle = LogExport.bundle(logText, LogExport.Options(minLevel = LogLevel.Info, sinceMillis = since, maxBytes = 5 * 1024 * 1024))
+// bundle.gzip: NDJSON đã nén, đã che email / IP (giữ /24); bundle.sha256, bundle.lines, bundle.truncated (bỏ dòng cũ nếu quá lớn)
+val small = Gzip.compress("bất kỳ dữ liệu nào".encodeToByteArray())       // gzip chuẩn, mở bằng gunzip ở máy chủ
+```
+<!-- /snippet -->
+
 ## TtlCache — cache có hạn, dùng ở đâu cũng được
 
 Không dính HTTP. `getOrLoad` an toàn khi nhiều nơi gọi cùng lúc: cùng một khoá chỉ chạy **một** lần tải. Lỗi khi tải không được lưu;

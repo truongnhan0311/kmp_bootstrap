@@ -3,6 +3,8 @@
 Phiên bản theo `0.x`: API còn có thể đổi, mỗi thay đổi phá API được ghi ở đây.
 
 ## Chưa phát hành
+- `appkit-core`: `Gzip.compress` (gzip thuần Kotlin, DEFLATE Huffman cố định + LZ77, `crc32`), `LogExport` (log của AppLog → NDJSON đã lọc mức/thời gian, che email và IP /24, giữ dòng mới nhất khi quá cỡ, nén, SHA-256), `LogBundle`.
+- `appkit-network`: `LogUploader` (PUT lên URL có chữ ký, không gửi token, không ghi URL vào log, chỉ https, thử lại 5xx/mạng nhưng không 4xx), `LogUploadResult`. Tách từ Recam (gửi log theo yêu cầu).
 - `appkit-core`: `QrCode` (sinh mã QR thuần Kotlin, ISO/IEC 18004: chế độ byte UTF-8, 4 mức sửa lỗi, phiên bản 1–40, tự chọn mặt nạ, `toSvg`); `QrEcc`. Kiểm bằng ZXing ở mọi phiên bản × mức. `appkit-ui`: `QrImage`. Tách từ Recam (mã ghép đôi, lời mời).
 - `appkit-webrtc` (mới, chỉ cần core): `IceServer`/`IceConfig`/`IceConfigSource` (TURN REST, hạn đọc từ username, xin lại khi còn dưới 1 giờ), `Sdp` (`hasDtlsFingerprint`, `preferCodec` kèm RTX, `limitBitrate`, `redact`), `IceCandidateInfo`, `CallSession` (Caller/Callee, trickle có thứ tự, giữ candidate đến sớm, hạn 10 s/20 s, ICE restart có giới hạn, từ chối SDP thiếu DTLS), interface `RtcPeer`/`Signaling`. Peer thật cho Android/iOS chưa có. Tách từ Recam.
 - `appkit-mqtt` (mới, cần core + Ktor): `MqttClient` (MQTT 3.1.1, tự nối lại có giãn cách, mật khẩu gọi lại mỗi lần nối, Last Will, QoS 1 gửi lại với cờ DUP sau khi nối lại, `subscribe` trả `Flow` có đếm người nghe, keepalive), `MqttCodec`, `MqttTopic`, `WebSocketConnector` (mọi nền tảng), `TcpConnector` (JVM). Đã chạy với mochi-mqtt thật qua WebSocket và TCP. Tách từ Recam.

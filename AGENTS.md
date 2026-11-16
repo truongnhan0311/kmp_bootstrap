@@ -23,7 +23,7 @@ Lần đầu tải thư viện từ Maven Central mất vài phút. Nếu gặp 
 | Cần | Module | Tài liệu |
 |---|---|---|
 | ngôn ngữ, log, lưu trữ, mã hoá, cache, timer, mã QR | `appkit-core` | `docs/core.md` |
-| gọi API (JWT, làm mới phiên, lỗi, cache GET) | `appkit-network` | `docs/network.md` |
+| gọi API (JWT, làm mới phiên, lỗi, cache GET), gửi log lên URL có chữ ký | `appkit-network` | `docs/network.md` |
 | thông báo đẩy FCM | `appkit-push` | `docs/push.md` |
 | nhắc giờ cục bộ | `appkit-reminder` | `docs/reminder.md` |
 | mở link, copy, chia sẻ, chọn ảnh, múi giờ | `appkit-platform` | `docs/platform.md` |

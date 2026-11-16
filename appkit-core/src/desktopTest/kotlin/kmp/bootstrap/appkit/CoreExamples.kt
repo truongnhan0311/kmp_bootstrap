@@ -59,6 +59,18 @@ class CoreExamples {
         assertEquals(true, dark); assertEquals(true, svg.startsWith("<svg"))
     }
 
+    @Test fun logExport() = runBlocking {
+        val logText = "2026-11-16T10:00:00Z I/auth: login ok for an@example.com\n2026-11-16T10:00:01Z E/mqtt: broker silent"
+        val since = 0L
+        // region: core-log-export
+        // logText = RotatingFileSink.readAll(); since/maxBytes lấy từ yêu cầu của máy chủ
+        val bundle = LogExport.bundle(logText, LogExport.Options(minLevel = LogLevel.Info, sinceMillis = since, maxBytes = 5 * 1024 * 1024))
+        // bundle.gzip: NDJSON đã nén, đã che email / IP (giữ /24); bundle.sha256, bundle.lines, bundle.truncated (bỏ dòng cũ nếu quá lớn)
+        val small = Gzip.compress("bất kỳ dữ liệu nào".encodeToByteArray())       // gzip chuẩn, mở bằng gunzip ở máy chủ
+        // endregion
+        assertEquals(2, bundle.lines); assertEquals(0x1f, small[0].toInt())
+    }
+
     @Test fun hmac() = runBlocking {
         // region: core-hmac
         val sig = Hex.encode(AppCrypto.hmacSha256("khoá chung".encodeToByteArray(), "GET\n/v1/me".encodeToByteArray()))   // hex chữ thường như server Go

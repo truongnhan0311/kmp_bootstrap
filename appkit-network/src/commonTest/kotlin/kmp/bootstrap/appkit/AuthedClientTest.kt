@@ -6,6 +6,7 @@ import io.ktor.client.engine.mock.toByteArray
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
@@ -130,14 +131,20 @@ class AuthedClientTest {
     @Test
     fun refreshNowCanBeCalledFromAnywhereAndSharesOneExchange() = runTest {
         var refreshCalls = 0
-        val engine = MockEngine { respond(tokensPair("n${++refreshCalls}", "r$refreshCalls"), HttpStatusCode.OK, JSON) }
+        // Máy chủ giả chỉ trả lời khi cả 5 lời gọi đã bắt đầu. Không giữ lại thì đôi khi lời gọi đầu xong trước khi lời gọi sau
+        // bắt đầu (MockEngine chạy trên luồng thật) và mỗi lời gọi lại đổi token một lần — đúng hành vi, nhưng không còn là "cùng lúc".
+        val release = CompletableDeferred<Unit>()
+        val engine = MockEngine { release.await(); respond(tokensPair("n${++refreshCalls}", "r$refreshCalls"), HttpStatusCode.OK, JSON) }
         val tokens = MemoryTokenStore("old", "r0")
         val client = AuthedClient("https://x.test", tokens, PlainJsonContract(TEST_PLAIN), "app", engine, refreshMarginSeconds = 0)
         assertTrue(client.hasSession())
-        val results = (1..5).map { async { client.refreshNow() } }.awaitAll()
+        val calls = (1..5).map { async { client.refreshNow() } }
+        testScheduler.runCurrent()                     // cả 5 đã đọc token cũ và đang chờ
+        release.complete(Unit)
+        val results = calls.awaitAll()
         // lần gọi đầu đổi token; các lần sau thấy access đã khác nên dùng luôn
         assertTrue(results.all { it }); assertEquals("n1", tokens.access())
-        assertTrue(refreshCalls in 1..5)
+        assertEquals(1, refreshCalls, "5 lời gọi cùng lúc chỉ đổi token một lần")
         assertFalse(AuthedClient("https://x.test", MemoryTokenStore(), PlainJsonContract(TEST_PLAIN), "app", engine).refreshNow(), "không có phiên thì false")
     }
 

@@ -11,7 +11,7 @@ Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các mo
 
 | Module | Có gì | Kéo theo |
 |---|---|---|
-| `appkit-core` | `Language` (chữ theo ngôn ngữ), `Navigator` + `DeepLinks` (điều hướng), `AppSettings` (giao diện + ngôn ngữ được nhớ), `SvgParser` (đọc SVG), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256, HMAC-SHA256, chuỗi ngẫu nhiên không lệch), `Hex`, `QrCode` (sinh mã QR), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
+| `appkit-core` | `Language` (chữ theo ngôn ngữ), `Navigator` + `DeepLinks` (điều hướng), `AppSettings` (giao diện + ngôn ngữ được nhớ), `SvgParser` (đọc SVG), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256, HMAC-SHA256, chuỗi ngẫu nhiên không lệch), `Hex`, `QrCode` (sinh mã QR), `Gzip`, `LogExport` (gom log để gửi), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
 | `appkit-network` | `Session` (đang kiểm tra/đăng nhập/đăng xuất), `AuthedClient` (JWT tự gắn + tự làm mới phiên), `HttpTransport` (failover, timeout, thử lại GET), `get/post/put/patch/delete`, `ApiError` có phân loại, cache GET, `Endpoints` (một chỗ khai báo đường dẫn), `AppKit.start()` | core + Ktor |
 | `appkit-push` | thông báo đẩy FCM: đăng ký thiết bị, điều hướng khi bấm | network (+ Firebase trên Android) |
 | `appkit-platform` | mở link, copy, chia sẻ, chọn ảnh, múi giờ qua một interface (có bản giả để test) | core |
@@ -112,7 +112,7 @@ CHANGELOG.md
 node --test tools/*.test.mjs                           # bộ sinh theme
 ```
 
-Đã kiểm trên JVM: 239 test (core 89, network 61, push 12, reminder 10, platform 6, iot 16, webrtc 23, mqtt 22 — 2 test với broker thật tự bỏ qua nếu chưa đặt biến môi trường) + 9 test công cụ (bộ sinh theme, SVG → Kotlin, sinh app); dự án sinh bởi new-app biên dịch được với kit; ví dụ trong docs là code đã biên dịch và chạy.
+Đã kiểm trên JVM: 251 test (core 96, network 66, push 12, reminder 10, platform 6, iot 16, webrtc 23, mqtt 22 — 2 test với broker thật tự bỏ qua nếu chưa đặt biến môi trường) + 9 test công cụ (bộ sinh theme, SVG → Kotlin, sinh app); dự án sinh bởi new-app biên dịch được với kit; ví dụ trong docs là code đã biên dịch và chạy.
 **Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, Swift), build Android/iOS;
 `appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.
 

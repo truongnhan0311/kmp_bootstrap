@@ -81,4 +81,20 @@ class NetworkExamples {
         // endregion
         sessionJob.cancel(); assertTrue(!AppKit.client.hasSession()); System.clearProperty("appkit.storage.dir")
     } }
+
+    @Test fun uploadLogs() = runBlocking {
+        val storage = MockEngine { respond("", HttpStatusCode.OK) }        // kho lưu trữ giả (S3/GCS…)
+        val uploadUrl = "https://bucket.example.com/logs/req-1.ndjson.gz?X-Amz-Signature=…"
+        val logText = "2026-11-16T10:00:00Z I/app: started"
+        // region: net-log-upload
+        // Máy chủ gửi yêu cầu (qua push/MQTT): upload_url có chữ ký, since_ms, max_bytes.
+        val bundle = LogExport.bundle(logText, LogExport.Options(sinceMillis = 0, maxBytes = 5 * 1024 * 1024))
+        val result = LogUploader(storage).upload(bundle, uploadUrl)          // PUT, không gửi token; URL không bao giờ vào log
+        val report = when (result) {
+            is LogUploadResult.Done -> "ok ${result.sizeBytes} bytes sha256=${result.sha256}"   // gửi kèm khi báo hoàn tất cho máy chủ
+            is LogUploadResult.Failed -> "failed ${result.code}"                              // no_logs | upload_failed
+        }
+        // endregion
+        assertTrue(report.startsWith("ok"))
+    }
 }
