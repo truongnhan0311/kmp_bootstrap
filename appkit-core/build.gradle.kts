@@ -42,6 +42,7 @@ kotlin {
         }
         // Nhà cung cấp mã hoá theo nền tảng (không dùng provider-optimal: nó chỉ có từ 0.5.0, build bằng Kotlin 2.2).
         val desktopMain by getting { dependencies { implementation(libs.cryptography.jdk) } }
+        val desktopTest by getting { dependencies { implementation(libs.zxing.core) } }
         if (!desktopOnly) {
             val androidMain by getting { dependencies { implementation(libs.androidx.security.crypto); implementation(libs.cryptography.jdk) } }
             // Source set THEO TỪNG TARGET (không dùng `iosMain by getting`: nó được tạo lười, xem ghi chú ở appkit-network/build.gradle.kts).

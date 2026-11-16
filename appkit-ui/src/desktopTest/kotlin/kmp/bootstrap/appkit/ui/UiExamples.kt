@@ -112,3 +112,10 @@ fun ThemedApp(light: AppColors, dark: AppColors, settings: kmp.bootstrap.appkit.
     }
 }
 // endregion
+
+// region: ui-qr
+@Composable
+fun InviteQr(inviteUrl: String) {
+    QrImage(inviteUrl, size = 220.dp, description = "Mã mời xem camera")   // đen trên trắng kể cả giao diện tối
+}
+// endregion

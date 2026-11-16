@@ -176,3 +176,16 @@ fun LoginScreen() {
 <!-- /snippet -->
 
 **Chưa kiểm:** module biên dịch được (kể cả `StarterHome` và các block) nhưng chưa chạy lúc runtime / chưa chụp màn hình ở môi trường dựng (`androidx.collection` chỉ có trên Google Maven, bị chặn). `HomeScreenshotTest` có sẵn: chạy ở máy có Google Maven sẽ ra `build/screenshots/home-dark.png` và `home-light.png`.
+
+## QrImage
+
+Vẽ mã QR của `QrCode` (appkit-core). Đen trên trắng kể cả ở giao diện tối vì nhiều máy quét không đọc mã đảo màu; viền 4 ô theo chuẩn.
+
+<!-- snippet: ui-qr -->
+```kotlin
+@Composable
+fun InviteQr(inviteUrl: String) {
+    QrImage(inviteUrl, size = 220.dp, description = "Mã mời xem camera")   // đen trên trắng kể cả giao diện tối
+}
+```
+<!-- /snippet -->

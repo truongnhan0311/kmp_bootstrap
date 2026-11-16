@@ -50,6 +50,15 @@ class CoreExamples {
         assertEquals("nội dung bí mật", text); assertEquals("abc", bytes.decodeToString())
     }
 
+    @Test fun qr() {
+        // region: core-qr
+        val qr = QrCode.encode("https://app.example.com/i/7FhQ2kLm")   // phiên bản nhỏ nhất vừa; còn chỗ thì nâng mức sửa lỗi
+        val dark = qr[0, 0]                                             // ma trận qr.size × qr.size, true = ô đen (chưa có viền)
+        val svg = qr.toSvg(border = 4)                                  // ghi ra file, gửi web… (trong Compose: QrImage của appkit-ui)
+        // endregion
+        assertEquals(true, dark); assertEquals(true, svg.startsWith("<svg"))
+    }
+
     @Test fun hmac() = runBlocking {
         // region: core-hmac
         val sig = Hex.encode(AppCrypto.hmacSha256("khoá chung".encodeToByteArray(), "GET\n/v1/me".encodeToByteArray()))   // hex chữ thường như server Go

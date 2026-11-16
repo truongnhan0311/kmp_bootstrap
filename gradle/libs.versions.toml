@@ -26,6 +26,8 @@ cryptography-jdk = { module = "dev.whyoleg.cryptography:cryptography-provider-jd
 cryptography-apple = { module = "dev.whyoleg.cryptography:cryptography-provider-apple", version.ref = "cryptography" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessaging" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+# Chỉ dùng trong test của appkit-core: giải mã QR do QrCode sinh ra bằng bộ giải mã độc lập.
+zxing-core = { module = "com.google.zxing:core", version = "3.5.3" }
 okio-fakefilesystem = { module = "com.squareup.okio:okio-fakefilesystem", version.ref = "okio" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }

@@ -65,6 +65,21 @@ val code = AppCrypto.randomString(8, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789")     // 
 ```
 <!-- /snippet -->
 
+## QrCode — sinh mã QR
+
+Thuần Kotlin, theo ISO/IEC 18004: chế độ byte (UTF-8), mức sửa lỗi `Low/Medium/Quartile/High`, phiên bản 1–40, tự chọn mặt nạ.
+Mọi phiên bản × mức đều được kiểm bằng cách giải lại với ZXing; bit định dạng so với bảng của chuẩn.
+
+<!-- snippet: core-qr -->
+```kotlin
+val qr = QrCode.encode("https://app.example.com/i/7FhQ2kLm")   // phiên bản nhỏ nhất vừa; còn chỗ thì nâng mức sửa lỗi
+val dark = qr[0, 0]                                             // ma trận qr.size × qr.size, true = ô đen (chưa có viền)
+val svg = qr.toSvg(border = 4)                                  // ghi ra file, gửi web… (trong Compose: QrImage của appkit-ui)
+```
+<!-- /snippet -->
+
+`QrCode.encodeBytes(bytes, ecc, boostEcc, minVersion, mask)` cho dữ liệu nhị phân hay khi muốn cố định cỡ mã; quá 2953 byte (mức Low) thì ném `IllegalArgumentException`.
+
 ## TtlCache — cache có hạn, dùng ở đâu cũng được
 
 Không dính HTTP. `getOrLoad` an toàn khi nhiều nơi gọi cùng lúc: cùng một khoá chỉ chạy **một** lần tải. Lỗi khi tải không được lưu;
