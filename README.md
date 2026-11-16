@@ -17,6 +17,7 @@ Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các mo
 | `appkit-platform` | mở link, copy, chia sẻ, chọn ảnh, múi giờ qua một interface (có bản giả để test) | core |
 | `appkit-iot` | giao thức thiết bị kiểu Tuya: thiết bị ký request (HMAC), mật khẩu MQTT của thiết bị, khung thông điệp `header`+`msg` có chống trùng, mã ghép đôi dễ đọc, data point có kiểu | core |
 | `appkit-mqtt` | client MQTT 3.1.1: tự nối lại, mật khẩu gọi lại mỗi lần nối, Last Will, QoS 0/1 gửi lại sau khi nối lại, nhận tin dạng `Flow`; qua WebSocket (mọi nền tảng) hoặc TCP (JVM) | core + Ktor |
+| `appkit-webrtc` | phần chung của cuộc gọi WebRTC: máy chủ ICE/TURN có hạn (tự xin lại), SDP (kiểm DTLS, ưu tiên H.264, giới hạn bitrate, che khi ghi log), `CallSession` (offer/answer/candidate, hết giờ, ICE restart). Peer thật gắn qua `RtcPeer` | core |
 | `appkit-reminder` | nhắc giờ bằng thông báo cục bộ (chạy cả khi app tắt), nhắc lặp đúng giờ qua giờ mùa hè | core |
 | `appkit-ui` | component Material 3 kiểu shadcn, theme sinh từ CSS của web, layout kiểu Tailwind, block kiểu Bootstrap, icon SVG, app mẫu 5 tab | core + Compose |
 
@@ -91,6 +92,7 @@ appkit-push/      Push  PushNavigation                       → docs/push.md
 appkit-platform/  PlatformServices (openUrl, clipboard, share, pickImage, timezone) + Fake  → docs/platform.md
 appkit-iot/       DeviceSigner  MqttDeviceAuth  Envelope  DuplicateFilter  PairingCode  DpSchema  → docs/iot.md
 appkit-mqtt/      MqttClient  MqttCodec  WebSocketConnector  TcpConnector(JVM)  → docs/mqtt.md
+appkit-webrtc/    IceConfig  IceConfigSource  Sdp  CallSession  RtcPeer  Signaling  → docs/webrtc.md
 appkit-reminder/  Reminders  (Android AlarmManager, iOS UNUserNotificationCenter)  → docs/reminder.md
 appkit-ui/        Theme  Components
   mỗi module: src/{commonMain,commonTest,desktopMain,androidMain,iosMain}  (expect/actual cho phần theo nền tảng)
@@ -110,7 +112,7 @@ CHANGELOG.md
 node --test tools/*.test.mjs                           # bộ sinh theme
 ```
 
-Đã kiểm trên JVM: 210 test (core 83, network 61, push 12, reminder 10, platform 6, iot 16, mqtt 22 — 2 test với broker thật tự bỏ qua nếu chưa đặt biến môi trường) + 9 test công cụ (bộ sinh theme, SVG → Kotlin, sinh app); dự án sinh bởi new-app biên dịch được với kit; ví dụ trong docs là code đã biên dịch và chạy.
+Đã kiểm trên JVM: 233 test (core 83, network 61, push 12, reminder 10, platform 6, iot 16, webrtc 23, mqtt 22 — 2 test với broker thật tự bỏ qua nếu chưa đặt biến môi trường) + 9 test công cụ (bộ sinh theme, SVG → Kotlin, sinh app); dự án sinh bởi new-app biên dịch được với kit; ví dụ trong docs là code đã biên dịch và chạy.
 **Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, Swift), build Android/iOS;
 `appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.
 
