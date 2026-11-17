@@ -46,4 +46,5 @@ cd ../my-app
 3. Màn hình: chép từ `StarterHome.kt`/`StarterPages.kt` (xem [ui.md](ui.md)) rồi nối dữ liệu thật vào `StarterData`.
 
 **Đã kiểm:** dự án sinh ra (đủ 5 module, và chỉ `network`) **biên dịch được** bản desktop với kit; script có test (tạo đủ tệp, từ chối tên/id sai, không ghi đè dự án có sẵn).
-**Chưa kiểm:** build Android/iOS của dự án sinh ra, `xcodegen`, chạy `:composeApp:run` (cần Compose runtime).
+**Đã kiểm thêm (2026-11-17, Android SDK 36, AGP 8.9.3):** dự án sinh ra với `network,platform,ui` dựng được APK debug (`./gradlew :androidApp:assembleDebug`, cần `local.properties` có `sdk.dir`).
+**Chưa kiểm:** build iOS của dự án sinh ra, `xcodegen`, chạy `:composeApp:run` (cần Compose runtime).

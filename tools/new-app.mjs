@@ -63,7 +63,8 @@ for (const f of ['gradlew', 'gradlew.bat']) cpSync(join(bootstrap, f), join(out,
 w('.gitignore', '.gradle/\nbuild/\n.kotlin/\nlocal.properties\n*.iml\n.idea/\niosApp/*.xcodeproj\nxcuserdata/\nDerivedData/\n')
 
 // ---- composeApp (mã dùng chung) ----
-const deps = coords.map(c => `            implementation("${c}")`).join('\n')
+// api: androidApp/iosApp dùng trực tiếp lớp của kit (AppKitAndroid, AppKitPlatform, IosDeviceKeys) nên phải thấy được.
+const deps = coords.map(c => `            api("${c}")`).join('\n')
 w('composeApp/build.gradle.kts', `import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -97,11 +98,15 @@ ${deps}
 
 if (!desktopOnly) apply(from = "android.gradle.kts")
 `)
-w('composeApp/android.gradle.kts', `extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
-    namespace = "${pkg}.shared"
-    compileSdk = 36
-    defaultConfig { minSdk = 26 }
-    compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+w('composeApp/android.gradle.kts', `// Nạp bằng apply(from) nên không thấy lớp của AGP lúc biên dịch: cấu hình qua tên thuộc tính (xem appkit-*/android.gradle.kts của kit).
+extensions.getByName("android").withGroovyBuilder {
+    setProperty("namespace", "${pkg}.shared")
+    setProperty("compileSdk", 36)
+    (getProperty("defaultConfig") as Any).withGroovyBuilder { setProperty("minSdk", 26) }
+    (getProperty("compileOptions") as Any).withGroovyBuilder {
+        setProperty("sourceCompatibility", JavaVersion.VERSION_17)
+        setProperty("targetCompatibility", JavaVersion.VERSION_17)
+    }
 }
 `)
 if (hasUi) {
@@ -171,7 +176,7 @@ fun MainViewController() = ComposeUIViewController(configure = { startApp() }) {
 // ---- androidApp ----
 w('androidApp/build.gradle.kts', `plugins {
     id("com.android.application")
-    alias(libs.plugins.kotlinAndroid)
+    id("org.jetbrains.kotlin.android")   // KHÔNG dùng alias có version: plugin Kotlin đã nằm trên classpath (từ composeApp)
     alias(libs.plugins.composeCompiler)
 }
 android {
@@ -184,7 +189,7 @@ kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarg
 dependencies {
     implementation(project(":composeApp"))
     implementation(libs.androidx.activity.compose)
-}
+${modules.has('platform') ? '    implementation("androidx.fragment:fragment-ktx:1.8.5")   // MainActivity là FragmentActivity (hộp thoại Face ID / vân tay)\n' : ''}}
 `)
 w('androidApp/src/main/AndroidManifest.xml', `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -215,10 +220,10 @@ class MyApplication : Application() {
 w(`androidApp/src/main/kotlin/${pkgPath}/MainActivity.kt`, `package ${pkg}
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-${modules.has('platform') ? 'import kmp.bootstrap.appkit.platform.AppKitPlatform\n' : ''}
-class MainActivity : ComponentActivity() {
+${modules.has('platform') ? 'import androidx.fragment.app.FragmentActivity\nimport kmp.bootstrap.appkit.platform.AppKitPlatform\n' : 'import androidx.activity.ComponentActivity\n'}
+// Có appkit-platform: FragmentActivity để BiometricPrompt (DeviceAuth, DeviceKeyLogin) hiện được.
+class MainActivity : ${modules.has('platform') ? 'FragmentActivity' : 'ComponentActivity'}() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 ${modules.has('platform') ? '        AppKitPlatform.attach(this)       // trước setContent: đăng ký bộ chọn ảnh\n' : ''}        setContent { App() }
