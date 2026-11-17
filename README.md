@@ -1,121 +1,152 @@
 # kmp_bootstrap
 
-Bộ khung dùng chung cho app Kotlin Multiplatform (Android + iOS): **đủ đồ, cần gì lấy nấy** — giống cách Goravel cho backend.
-> Đây là **SDK nội bộ**. Agent/người mới: đọc [AGENTS.md](AGENTS.md) (pull về và kiểm tra trong 1 lệnh) rồi `docs/<module>.md` — mỗi mục có ví dụ chạy được.
+A shared toolkit for Kotlin Multiplatform apps (Android + iOS, plus a JVM desktop target for tests). **Batteries included, take only what you need**, in the spirit of Goravel for Go backends.
 
-Mỗi mảnh là một module riêng; app chỉ khai module mình dùng, các module khác không bị kéo vào.
+> New here (person or agent)? Read [AGENTS.md](AGENTS.md) first: it pulls and verifies the kit in one command. Then read `docs/<module>.md`. Every example in the docs is copied from code that compiles and runs in the test suite.
 
-> **Bắt đầu một app mới:** `node tools/new-app.mjs --name my-app --id com.acme.myapp --out ../my-app --modules network,push,platform,ui` — xem [docs/new-app.md](docs/new-app.md).
+Each piece is a separate module. An app declares only the modules it uses; nothing else is pulled in.
 
-## Chọn module
+> **Start a new app:** `node tools/new-app.mjs --name my-app --id com.acme.myapp --out ../my-app --modules network,push,platform,ui`. See [docs/new-app.md](docs/new-app.md).
 
-| Module | Có gì | Kéo theo |
+## Modules
+
+| Module | What it gives you | Depends on |
 |---|---|---|
-| `appkit-core` | `Language` (chữ theo ngôn ngữ), `Navigator` + `DeepLinks` (điều hướng), `AppSettings` (giao diện + ngôn ngữ được nhớ), `SvgParser` (đọc SVG), `AppLog` (log xoay vòng, che bí mật), `AppStorage` (lưu cục bộ + két an toàn), `AppCrypto` (AES-256-GCM, SHA-256, HMAC-SHA256, chuỗi ngẫu nhiên không lệch), `Hex`, `QrCode` (sinh mã QR), `Gzip`, `LogExport` (gom log để gửi), `TtlCache` (cache có hạn), `Jwt` | coroutines, serialization, datetime, okio, cryptography |
-| `appkit-network` | `Session` (đang kiểm tra/đăng nhập/đăng xuất), `AuthedClient` (JWT tự gắn + tự làm mới phiên), `HttpTransport` (failover, timeout, thử lại GET), `get/post/put/patch/delete`, `ApiError` có phân loại, cache GET, `Endpoints` (một chỗ khai báo đường dẫn), `AppKit.start()` | core + Ktor |
-| `appkit-push` | thông báo đẩy FCM: đăng ký thiết bị, điều hướng khi bấm | network (+ Firebase trên Android) |
-| `appkit-platform` | mở link, copy, chia sẻ, chọn ảnh, múi giờ qua một interface (có bản giả để test) | core |
-| `appkit-iot` | giao thức thiết bị kiểu Tuya: thiết bị ký request (HMAC), mật khẩu MQTT của thiết bị, khung thông điệp `header`+`msg` có chống trùng, mã ghép đôi dễ đọc, data point có kiểu | core |
-| `appkit-mqtt` | client MQTT 3.1.1: tự nối lại, mật khẩu gọi lại mỗi lần nối, Last Will, QoS 0/1 gửi lại sau khi nối lại, nhận tin dạng `Flow`; qua WebSocket (mọi nền tảng) hoặc TCP (JVM) | core + Ktor |
-| `appkit-webrtc` | phần chung của cuộc gọi WebRTC: máy chủ ICE/TURN có hạn (tự xin lại), SDP (kiểm DTLS, ưu tiên H.264, giới hạn bitrate, che khi ghi log), `CallSession` (offer/answer/candidate, hết giờ, ICE restart). Peer thật gắn qua `RtcPeer` | core |
-| `appkit-reminder` | nhắc giờ bằng thông báo cục bộ (chạy cả khi app tắt), nhắc lặp đúng giờ qua giờ mùa hè | core |
-| `appkit-ui` | component Material 3 kiểu shadcn, theme sinh từ CSS của web, layout kiểu Tailwind, block kiểu Bootstrap, icon SVG, app mẫu 5 tab | core + Compose |
+| `appkit-core` | `Language` (localized strings: en/vi/zh/es), `Navigator` + `DeepLinks`, `AppSettings` (remembered theme and language), `SvgParser`, `AppLog` (rotating log, secrets masked), `AppStorage` (prefs + secure store), `AppCrypto` (AES-256-GCM, SHA-256, HMAC-SHA256, unbiased random strings), `Hex`, `QrCode` (pure-Kotlin QR generator), `Gzip`, `LogExport` (collect logs for upload), `TtlCache`, `Jwt` | coroutines, serialization, datetime, okio, cryptography |
+| `appkit-network` | `Session` (checking / signed in / signed out), `AuthedClient` (attaches JWT, refreshes the session for you), `HttpTransport` (failover, timeouts, GET retry), `get/post/put/patch/delete`, typed `ApiError`, GET cache, `Endpoints` (paths declared once), `LogUploader` (signed-URL log upload), `AppKit.start()` | core + Ktor |
+| `appkit-push` | FCM push: device registration, navigation when a notification is tapped | network (+ Firebase on Android) |
+| `appkit-platform` | open links, clipboard, share, pick image, time zone behind one interface (with a fake for tests); **app lock** with Face ID / fingerprint / device passcode (`AppLock`); **server-verified login** with Face ID / fingerprint / passcode, passkey style (`DeviceKeyLogin`) | core |
+| `appkit-iot` | Tuya-style device protocol: device request signing (HMAC), device MQTT password, `header`+`msg` envelope with de-duplication, readable pairing codes, typed data points | core |
+| `appkit-mqtt` | MQTT 3.1.1 client: auto-reconnect with backoff, password callback on every connect, Last Will, QoS 0/1 with resend after reconnect, messages as `Flow`; over WebSocket (all platforms) or TCP (JVM) | core + Ktor |
+| `appkit-webrtc` | the shared half of a WebRTC call: expiring ICE/TURN servers (re-fetched automatically), SDP helpers (DTLS check, prefer H.264, bitrate cap, redaction for logs), `CallSession` (offer/answer/candidates, timeouts, ICE restart). The real peer plugs in through `RtcPeer` | core |
+| `appkit-reminder` | local-notification reminders (fire even when the app is closed), repeating reminders that stay on time across DST | core |
+| `appkit-ui` | shadcn-style Material 3 components, theme generated from web CSS, Tailwind-style layout, Bootstrap-style blocks, SVG icons, `QrImage`, a 5-tab starter app | core + Compose |
 
-Chỉ cần mã hoá và log? Lấy `appkit-core` — không có Ktor, không có Firebase (đã kiểm: `samples/core-only`).
+Only need crypto and logging? Take `appkit-core` alone: no Ktor, no Firebase (verified by `samples/core-only`).
 
-## Cài đặt
+## Install
 
-Chưa phát hành lên Maven; dùng như thư viện nguồn bằng `includeBuild` (đặt repo cạnh app, hoặc thêm làm git submodule):
+Not published to Maven yet. Use it as a source library with `includeBuild` (put the repo next to your app, or add it as a git submodule):
 
 ```kotlin
-// settings.gradle.kts của app
+// app settings.gradle.kts
 includeBuild("../kmp_bootstrap")
 
-// build.gradle.kts của module dùng chung (commonMain)
+// build.gradle.kts of the shared module (commonMain)
 commonMain.dependencies {
-    implementation("kmp.bootstrap:appkit-network")     // kéo cả appkit-core
-    implementation("kmp.bootstrap:appkit-push")        // tuỳ chọn
+    implementation("kmp.bootstrap:appkit-network")     // brings appkit-core
+    implementation("kmp.bootstrap:appkit-platform")    // optional
 }
 ```
 
-Android: gọi `AppKitAndroid.init(context)` một lần ở `Application.onCreate`. iOS: không cần gì thêm (push: xem `docs/push.md`).
-Máy không có Android SDK / Xcode (CI, sandbox): thêm `-PdesktopOnly=true` để chỉ dựng và test bản JVM.
+Android: call `AppKitAndroid.init(context)` once in `Application.onCreate`. iOS: nothing extra (push: see `docs/push.md`; device-key login: see below).
+No Android SDK / Xcode on the machine (CI, sandbox)? Add `-PdesktopOnly=true` to build and test the JVM target only.
 
-## Dùng
+## Use
 
 ```kotlin
-// một lần, lúc khởi động
+// once, at startup
 AppKit.start(AppKitConfig(name = "my-app", baseUrls = listOf("https://api.example.com"), contract = PlainJsonContract(Endpoints.taper("/api/v2"))))
 
-// ở BẤT KỲ ĐÂU: JWT tự gắn, tự làm mới, body @Serializable, lỗi là ApiError có kind
+// ANYWHERE: JWT attached and refreshed, @Serializable bodies, failures are ApiError with a kind
 val me: User = AppKit.client.get("/api/v2/auth/me")
-val feed: Feed = AppKit.client.get("/api/v2/feed", cache = CachePolicy.hours(1))   // cache 1 giờ; mất mạng thì trả bản cũ
-val item: Item = AppKit.client.post("/api/v2/items", NewItem("x"))                  // put / patch tương tự
+val feed: Feed = AppKit.client.get("/api/v2/feed", cache = CachePolicy.hours(1))   // cached 1 hour; stale copy when offline
+val item: Item = AppKit.client.post("/api/v2/items", NewItem("x"))                  // put / patch alike
 val maybe: Item? = AppKit.client.getOrNull("/api/v2/items/9")                        // 404 → null
 AppKit.client.delete("/api/v2/items/9")
-AppKit.refreshSession()                                                              // làm mới phiên ngay
-AppKit.storage.prefs.putBool("dark", true)                                           // lưu cục bộ; AppKit.storage.tokens = token an toàn
-AppLog.i("home", "opened")                                                           // console + file tự xoay vòng
-val box = AppCrypto.encryptText("bí mật", "mật khẩu")                                // AES-256-GCM
-val profiles = TtlCache<String, Profile>(1.hours)                                    // cache dùng độc lập, không dính HTTP
-profiles.getOrLoad(userId) { api.profile(userId) }                                   // N nơi gọi cùng lúc chỉ tải một lần
-AppKit.client.sessionExpired.collect { goToLogin() }                                 // refresh token chết thật
+AppKit.refreshSession()                                                              // refresh now
+AppKit.storage.prefs.putBool("dark", true)                                           // local prefs; AppKit.storage.tokens = secure tokens
+AppLog.i("home", "opened")                                                           // console + rotating file
+val box = AppCrypto.encryptText("secret", "password")                                // AES-256-GCM
+val profiles = TtlCache<String, Profile>(1.hours)                                    // standalone cache, not tied to HTTP
+profiles.getOrLoad(userId) { api.profile(userId) }                                   // N concurrent callers, one load
+AppKit.client.sessionExpired.collect { goToLogin() }                                 // refresh token really dead
 ```
 
-Đăng nhập: `client.raw("POST", AppKit.endpoints.login, body, auth = false)` rồi `client.storeLogin(r)`.
+Password login: `client.raw("POST", AppKit.endpoints.login, body, auth = false)`, then `client.storeLogin(r)`.
 
-## Nó lo giúp bạn điều gì
+## What it handles for you
 
-| Việc | Cách |
+| Situation | How |
 |---|---|
-| Gắn `Authorization: Bearer` và `X-App-Id` | tự động |
-| Access token sắp hết hạn (< 2 phút, đọc `exp` của JWT) | làm mới **trước** khi gửi |
-| Server trả "token hết hạn/bị thu hồi" | làm mới rồi **gửi lại đúng 1 lần** |
-| 8 request 401 cùng lúc | chỉ **một** lần đổi refresh token (refresh dùng một lần; đổi nhiều lần = bị coi là bị đánh cắp) |
-| Mạng hỏng đúng lúc làm mới | giữ token, lần sau thử lại (không đăng xuất oan) |
-| Refresh token chết thật | xoá token + xoá cache + phát `sessionExpired` |
-| Lỗi tạm khi ĐỌC (timeout, 5xx, 429) | GET tự thử lại (mặc định 1 lần); request GHI không bao giờ tự thử lại (tránh ghi trùng) |
-| Mọi thất bại | một `ApiError` có `kind` (Network, Timeout, Unauthorized, NotFound, Invalid, Server, Parse…), một dòng log kèm `requestId` |
-| Chữ báo lỗi cho người dùng | theo ngôn ngữ: app đặt → hệ thống → EN (en/vi/zh/es); lời của server giữ nguyên |
-| Tên miền chính sập (DNS) | `Failover(listOf(chính, dựphòng))` thử tên kế tiếp |
-| Cache GET (bật theo từng lời gọi) | TTL, bản cũ khi lỗi, ngăn riêng từng người dùng, tự xoá khi ghi, xoá sạch khi đăng xuất |
-| Log | file xoay vòng + xoá theo tuổi; mật khẩu che hẳn, token giữ 5 ký tự cuối để tra |
+| `Authorization: Bearer` and `X-App-Id` headers | automatic |
+| Access token about to expire (< 2 min, read from the JWT `exp`) | refreshed **before** sending |
+| Server says "token expired / revoked" | refresh, then **resend exactly once** |
+| 8 requests get 401 at the same time | only **one** refresh-token exchange (refresh tokens are single use; several exchanges look like theft) |
+| Network drops during refresh | tokens kept, retried next time (no false sign-out) |
+| Refresh token really dead | tokens and cache cleared, `sessionExpired` emitted |
+| Transient error on a READ (timeout, 5xx, 429) | GET retried (once by default); WRITES are never retried automatically (no duplicate writes) |
+| Any failure | one `ApiError` with a `kind` (Network, Timeout, Unauthorized, NotFound, Invalid, Server, Parse…) and one log line with the `requestId` |
+| Error text for the user | in the app's language, else the system's, else English (en/vi/zh/es); server messages kept as sent |
+| Primary domain down (DNS) | `Failover(listOf(primary, backup))` tries the next host |
+| GET cache (opt in per call) | TTL, stale-on-error, separate per user, invalidated on writes, wiped on sign-out |
+| Logs | rotating files with age-based cleanup; passwords fully masked, tokens keep their last 5 characters for tracing |
 
-Hai kiểu backend, một cơ chế: chỗ **duy nhất** khác nhau là `AuthContract` (`PlainJsonContract` kiểu Taper, `EnvelopeContract` kiểu khung `{code,message,data}`) cùng `Endpoints` (đường dẫn). Backend thứ ba: cài `AuthContract` (6 hàm nhỏ).
+Two backend styles, one mechanism: the **only** difference is the `AuthContract` (`PlainJsonContract` for plain JSON, `EnvelopeContract` for a `{code,message,data}` envelope) plus `Endpoints` (paths). A third backend style means implementing `AuthContract` (6 small functions).
 
-## Cấu trúc
+## Face ID / fingerprint / passcode
+
+Two separate features in `appkit-platform`, both using the OS prompt. The app never sees face, fingerprint or passcode data.
+
+| | `AppLock` | `DeviceKeyLogin` |
+|---|---|---|
+| Purpose | lock the UI, like banking apps | sign in without typing a password |
+| Talks to the server | no; the saved session stays as it was | yes; returns a fresh session |
+| How | `DeviceAuth` prompt (biometrics, falls back to the device passcode) | ECDSA P-256 key in Android Keystore / iOS Secure Enclave that signs only after the prompt; the server keeps the public key and sends a short-lived, single-use challenge |
+| Your part | lifecycle calls `onBackground()` / `onForeground()` | implement `DeviceKeyBackend` (4 calls) with your HTTP client |
+
+```kotlin
+val login = DeviceKeyLogin(deviceKeyStore(), backend, AppKit.storage.prefs, deviceId = { installId })
+if (login.available()) login.enable(userId, "Minh's iPhone", "ios")      // Account screen, while signed in
+when (val r = login.login(login.lastUser ?: userId, reason = "Sign in")) {
+    is DeviceKeyLogin.Outcome.Success -> save(r.session)
+    DeviceKeyLogin.Outcome.Cancelled -> Unit                              // stay on the sign-in screen
+    DeviceKeyLogin.Outcome.Disabled,                                      // revoked on the server, or biometrics changed: key already removed
+    DeviceKeyLogin.Outcome.LockedOut, DeviceKeyLogin.Outcome.Unavailable -> showPasswordLogin()
+    is DeviceKeyLogin.Outcome.Error -> showRetry()                        // network / server error, feature stays on
+}
+```
+
+- `allowPasscode = true` (default) also accepts the device passcode (iOS `.userPresence`; Android 11+ `DEVICE_CREDENTIAL`, biometrics only on older Android).
+- Wire format, locked by a test vector shared with the Recam server: public key = base64 SPKI DER (Android) or 65-byte point (iOS); signature = base64 ECDSA SHA-256 DER over the challenge string in UTF-8.
+- Android: `MainActivity` must be a `FragmentActivity` and call `AppKitPlatform.attach(this)`. iOS: add `NSFaceIDUsageDescription` to `Info.plist`, copy the Swift `SecureEnclaveDeviceKeyStore` from [docs/platform.md](docs/platform.md), and set `IosDeviceKeys.shared.store` at startup. Desktop: not supported (`Unavailable`).
+
+## Layout
 
 ```
-appkit-core/      Language  Log  Storage  Stores  Crypto  TtlCache  Jwt
-appkit-network/   HttpTransport  AuthedClient  Requests  Endpoints  AuthContract  Failover  ApiError  Cache  AppKit
-appkit-push/      Push  PushNavigation                       → docs/push.md
-appkit-platform/  PlatformServices (openUrl, clipboard, share, pickImage, timezone) + Fake  → docs/platform.md
+appkit-core/      Language  Navigator  AppSettings  Log  LogExport  Storage  Stores  Crypto  Gzip  QrCode  Svg  TtlCache  Jwt  → docs/core.md
+appkit-network/   HttpTransport  AuthedClient  Session  Requests  Endpoints  AuthContract  Failover  ApiError  Cache  LogUploader  AppKit  → docs/network.md, docs/session.md
+appkit-push/      Push  PushNavigation                                                   → docs/push.md
+appkit-platform/  PlatformServices  DeviceAuth  AppLock  DeviceKeyStore  DeviceKeyLogin (+ fakes)  → docs/platform.md
 appkit-iot/       DeviceSigner  MqttDeviceAuth  Envelope  DuplicateFilter  PairingCode  DpSchema  → docs/iot.md
-appkit-mqtt/      MqttClient  MqttCodec  WebSocketConnector  TcpConnector(JVM)  → docs/mqtt.md
-appkit-webrtc/    IceConfig  IceConfigSource  Sdp  CallSession  RtcPeer  Signaling  → docs/webrtc.md
-appkit-reminder/  Reminders  (Android AlarmManager, iOS UNUserNotificationCenter)  → docs/reminder.md
-appkit-ui/        Theme  Components
-  mỗi module: src/{commonMain,commonTest,desktopMain,androidMain,iosMain}  (expect/actual cho phần theo nền tảng)
-tools/shadcn-theme.mjs   sinh AppColors sáng/tối từ CSS shadcn (node --test tools/*.test.mjs)
-samples/core-only/       app mẫu chỉ lấy appkit-core
-tools/new-app.mjs        sinh dự án app mới (Android + iOS + desktop) nối sẵn kit
-docs/*.md                tài liệu từng module, mỗi mục có ví dụ CHÉP TỪ CODE ĐÃ CHẠY (node tools/sync-snippets.mjs)
-AGENTS.md                hướng dẫn cho agent: pull về, dùng, sửa
+appkit-mqtt/      MqttClient  MqttCodec  WebSocketConnector  TcpConnector(JVM)           → docs/mqtt.md
+appkit-webrtc/    IceConfig  IceConfigSource  Sdp  CallSession  RtcPeer  Signaling       → docs/webrtc.md
+appkit-reminder/  Reminders (Android AlarmManager, iOS UNUserNotificationCenter)         → docs/reminder.md
+appkit-ui/        Theme  Components  Layout  Blocks  Charts  NavHost  QrImage  Starter*  → docs/ui.md
+  each module: src/{commonMain,commonTest,desktopMain,androidMain,iosMain}  (expect/actual for platform parts)
+tools/new-app.mjs        generate a new app (Android + iOS + desktop) wired to the kit
+tools/shadcn-theme.mjs   generate light/dark AppColors from shadcn CSS
+tools/svg-to-kotlin.mjs  generate AppIcons from appkit-ui/icons/*.svg
+tools/sync-snippets.mjs  copy `// region:` blocks from *Examples.kt into the docs (--check for CI)
+samples/core-only/       sample app that uses appkit-core only
+docs/*.md                per-module docs; every example is code that ran in the tests
+AGENTS.md                guide for agents: pull, use, change
 CHANGELOG.md
 ```
 
-## Chạy test
+## Tests
 
 ```sh
-./gradlew -PdesktopOnly=true desktopTest     # JVM (riêng :appkit-ui chỉ biên dịch được: compileTestKotlinDesktop) — không cần Android SDK/Xcode
-./gradlew build                              # máy có Android Studio/Xcode: đủ Android + iOS
-node --test tools/*.test.mjs                           # bộ sinh theme
+./gradlew -PdesktopOnly=true desktopTest     # JVM, no Android SDK / Xcode needed (:appkit-ui: compileTestKotlinDesktop only)
+./gradlew build                              # with Android Studio / Xcode: full Android + iOS build
+node --test tools/*.test.mjs                 # tool tests
+node tools/sync-snippets.mjs --check         # docs match the example code
 ```
 
-Đã kiểm trên JVM: 251 test (core 96, network 66, push 12, reminder 10, platform 6, iot 16, webrtc 23, mqtt 22 — 2 test với broker thật tự bỏ qua nếu chưa đặt biến môi trường) + 9 test công cụ (bộ sinh theme, SVG → Kotlin, sinh app); dự án sinh bởi new-app biên dịch được với kit; ví dụ trong docs là code đã biên dịch và chạy.
-**Chưa kiểm** (cần Android Studio/Xcode/thiết bị): mọi file `androidMain`/`iosMain` (Keystore, Keychain, logcat, FCM, AlarmManager, UNUserNotificationCenter, Swift), build Android/iOS;
-`appkit-ui` **biên dịch được** nhưng chưa chạy lúc runtime/chưa chụp màn hình (môi trường dựng không tải được `androidx.collection`); backend thật.
+Verified on the JVM: 270 tests (core 96, network 66, platform 25, webrtc 23, mqtt 22, iot 16, push 12, reminder 10; the 2 tests against a real MQTT broker skip themselves unless an environment variable is set) plus 9 tool tests. Projects generated by `new-app` compile against the kit, and every docs example is compiled and run.
 
-## Giấy phép
+**Not yet verified** (needs Android Studio, Xcode or a device): every `androidMain` / `iosMain` file (Keystore, Keychain, Secure Enclave, BiometricPrompt, LocalAuthentication, logcat, FCM, AlarmManager, UNUserNotificationCenter, the Swift samples) and the Android/iOS builds. `appkit-ui` **compiles** but has not run or been screenshotted (this build environment cannot download `androidx.collection`). No real backend tested except where a doc says so.
 
-MIT — xem [LICENSE](LICENSE).
+## License
+
+MIT, see [LICENSE](LICENSE).
