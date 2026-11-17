@@ -3,6 +3,7 @@
 Phiên bản theo `0.x`: API còn có thể đổi, mỗi thay đổi phá API được ghi ở đây.
 
 ## Chưa phát hành
+- `appkit-platform`: `DeviceAuth` + `AppLock` (khoá app bằng khuôn mặt / vân tay / mật mã máy, mở khoá trên máy, khoá lại sau 5 phút ở nền); `DeviceKeyStore` + `DeviceKeyLogin` (đăng nhập có máy chủ kiểu passkey: khoá P-256 trong Android Keystore / Secure Enclave, `allowPasscode`, `DeviceKeyBackend`, `DeviceKeyNotRegistered`), `FakeDeviceAuth`, `FakeDeviceKeyStore`, `IosDeviceKeys` (gán lớp Swift mẫu trong docs/platform.md). Thêm `androidx.biometric`. Vector khoá chung với server Recam. Phần Android/iOS chưa chạy trên máy thật.
 - `appkit-core`: `Gzip.compress` (gzip thuần Kotlin, DEFLATE Huffman cố định + LZ77, `crc32`), `LogExport` (log của AppLog → NDJSON đã lọc mức/thời gian, che email và IP /24, giữ dòng mới nhất khi quá cỡ, nén, SHA-256), `LogBundle`.
 - `appkit-network`: `LogUploader` (PUT lên URL có chữ ký, không gửi token, không ghi URL vào log, chỉ https, thử lại 5xx/mạng nhưng không 4xx), `LogUploadResult`. Tách từ Recam (gửi log theo yêu cầu).
 - `appkit-core`: `QrCode` (sinh mã QR thuần Kotlin, ISO/IEC 18004: chế độ byte UTF-8, 4 mức sửa lỗi, phiên bản 1–40, tự chọn mặt nạ, `toSvg`); `QrEcc`. Kiểm bằng ZXing ở mọi phiên bản × mức. `appkit-ui`: `QrImage`. Tách từ Recam (mã ghép đôi, lời mời).

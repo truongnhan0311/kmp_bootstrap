@@ -34,7 +34,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
         }
         if (!desktopOnly) {
-            val androidMain by getting { dependencies { implementation(libs.androidx.core); implementation(libs.androidx.activity) } }
+            val androidMain by getting { dependencies { implementation(libs.androidx.core); implementation(libs.androidx.activity); implementation(libs.androidx.biometric) } }
         }
     }
 }

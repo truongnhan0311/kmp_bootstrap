@@ -15,6 +15,7 @@ enum class Msg {
     BodyEncodeFailed, BodyNotObject,
     DecryptFailed, BadFormat,
     NotificationChannel,
+    UnlockPrompt,
 }
 
 /** Mã ngôn ngữ ISO 639-1 viết thường của máy ("vi", "en", "zh"…). Nền tảng cài; Language tự chuẩn hoá và rơi về "en". */
@@ -62,6 +63,7 @@ private val EN = mapOf(
     Msg.DecryptFailed to "Decryption failed: wrong key or the data was altered.",
     Msg.BadFormat to "The data is not in a valid format or version.",
     Msg.NotificationChannel to "Notifications",
+    Msg.UnlockPrompt to "Unlock to continue",
 )
 
 private val VI = mapOf(
@@ -81,6 +83,7 @@ private val VI = mapOf(
     Msg.DecryptFailed to "Giải mã thất bại: sai khoá hoặc dữ liệu bị sửa.",
     Msg.BadFormat to "Dữ liệu không đúng định dạng hoặc phiên bản.",
     Msg.NotificationChannel to "Thông báo",
+    Msg.UnlockPrompt to "Mở khoá để tiếp tục",
 )
 
 private val ES = mapOf(
@@ -100,6 +103,7 @@ private val ES = mapOf(
     Msg.DecryptFailed to "Error al descifrar: clave incorrecta o datos alterados.",
     Msg.BadFormat to "Los datos no tienen un formato o versión válidos.",
     Msg.NotificationChannel to "Notificaciones",
+    Msg.UnlockPrompt to "Desbloquea para continuar",
 )
 
 private val ZH = mapOf(
@@ -119,4 +123,5 @@ private val ZH = mapOf(
     Msg.DecryptFailed to "解密失败：密钥错误或数据被篡改。",
     Msg.BadFormat to "数据格式或版本无效。",
     Msg.NotificationChannel to "通知",
+    Msg.UnlockPrompt to "解锁以继续",
 )

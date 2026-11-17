@@ -42,6 +42,8 @@ ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.re
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 androidx-activity = { module = "androidx.activity:activity-ktx", version = "1.9.3" }
 androidx-core = { module = "androidx.core:core-ktx", version = "1.15.0" }
+# Hộp thoại khuôn mặt / vân tay / mật mã máy (DeviceAuth của appkit-platform).
+androidx-biometric = { module = "androidx.biometric:biometric", version = "1.1.0" }
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidxSecurityCrypto" }
 
 [plugins]
