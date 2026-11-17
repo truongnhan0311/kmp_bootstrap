@@ -63,4 +63,7 @@ object AppKit {
 
     /** Gọi khi app sắp thoát để dòng log cuối kịp xuống đĩa. */
     suspend fun flushLogs() { _fileLog?.flush() }
+
+    /** Toàn bộ log trong file xoay vòng (tệp mới nhất trước) để gom gửi hỗ trợ (`LogExport.bundle`); "" nếu không ghi file. */
+    suspend fun readLogs(): String { val f = _fileLog ?: return ""; f.flush(); return f.readAll() }
 }
