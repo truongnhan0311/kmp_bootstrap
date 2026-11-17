@@ -85,8 +85,148 @@ call.hangup()                                                           // báo 
 `CallSession` đăng ký nghe trước khi gọi `createOffer`, nên candidate phát ngay trong `setLocalDescription` không bị mất.
 `addIceCandidate` được phép ném lỗi như thư viện thật.
 
+## Peer thật: Android
+
+`AndroidRtcPeer` trên libwebrtc của Google (`io.getstream:stream-webrtc-android`, API `org.webrtc`), có sẵn khi khai `appkit-webrtc`.
+
+```kotlin
+val rtc = AndroidRtc.get(context)                                   // một lần: EGL + PeerConnectionFactory
+val cam = AndroidRtcPeer(rtc, ice.servers, PeerMedia.SendCamera())  // điện thoại làm camera: camera sau 1280×720@30 + micro
+val viewer = AndroidRtcPeer(rtc, ice.servers, PeerMedia.Receive())  // người xem: chỉ nhận, có DataChannel "ctrl"
+val renderer = rtc.newRenderer(context)                             // View để vẽ (AndroidView trong Compose)
+viewer.remoteVideo.collect { it?.addSink(renderer) }                // cam.localVideo?.addSink(…) để xem trước
+cam.setVideoQuality(640, 480, 24)                                   // hạ bậc khi nóng/mạng yếu, không cần đàm phán lại
+```
+
+- Cần quyền `CAMERA` (và `RECORD_AUDIO` nếu có tiếng) **trước** khi dựng `SendCamera`.
+- Phía camera (bên trả answer) thêm track bằng `addTrack`, không bằng `addTransceiver`: khi áp offer, chuẩn JSEP chỉ ghép m-line vào transceiver
+  sinh từ `addTrack`; dùng `addTransceiver` thì answer có m-line `inactive` và hình không đi.
+- Username TURN REST có dấu `:` nên đưa vào `setUsername`/`setPassword`, không ghép vào URL.
+
+## Peer thật: iOS
+
+libwebrtc dùng từ Swift (gói [`WebRTC`](https://github.com/stasel/WebRTC) qua Swift Package Manager). Kotlin có `IosRtcPeer` bọc hai
+giao diện `SwiftRtcFactory`/`SwiftRtcPeer`; app chép lớp Swift dưới đây vào `iosApp` và gán lúc khởi động
+`IosRtc.shared.factory = SwiftRtcFactory()`. Info.plist cần `NSCameraUsageDescription`, `NSMicrophoneUsageDescription`.
+
+```swift
+import WebRTC
+import ComposeApp   // framework Kotlin của app
+
+final class SwiftRtcFactory: NSObject, kmp.bootstrap.appkit.webrtc.SwiftRtcFactory {
+    static let factory: RTCPeerConnectionFactory = {
+        RTCInitializeSSL()
+        return RTCPeerConnectionFactory(encoderFactory: RTCDefaultVideoEncoderFactory(), decoderFactory: RTCDefaultVideoDecoderFactory())
+    }()
+    func create(iceJson: String, sendCamera: Bool, listener: SwiftRtcListener) -> SwiftRtcPeer {
+        SwiftRtcPeerImpl(iceJson: iceJson, sendCamera: sendCamera, listener: listener)
+    }
+}
+
+final class SwiftRtcPeerImpl: NSObject, SwiftRtcPeer, RTCPeerConnectionDelegate {
+    private let listener: SwiftRtcListener
+    private var pc: RTCPeerConnection!
+    private var capturer: RTCCameraVideoCapturer?
+    private var localTrack: RTCVideoTrack?
+    private var remoteTrack: RTCVideoTrack?
+    private var useFront = false
+    private lazy var view: RTCMTLVideoView = { let v = RTCMTLVideoView(); v.videoContentMode = .scaleAspectFit; return v }()
+
+    init(iceJson: String, sendCamera: Bool, listener: SwiftRtcListener) {
+        self.listener = listener
+        super.init()
+        let f = SwiftRtcFactory.factory
+        let config = RTCConfiguration()
+        config.sdpSemantics = .unifiedPlan
+        config.continualGatheringPolicy = .gatherContinually
+        config.bundlePolicy = .maxBundle
+        config.rtcpMuxPolicy = .require
+        let items = (try? JSONSerialization.jsonObject(with: Data(iceJson.utf8))) as? [[String: Any]] ?? []
+        config.iceServers = items.map {   // username/credential là trường riêng (username TURN REST có dấu ':')
+            RTCIceServer(urlStrings: $0["urls"] as? [String] ?? [], username: $0["username"] as? String, credential: $0["credential"] as? String)
+        }
+        pc = f.peerConnection(with: config, constraints: RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil), delegate: self)
+        if sendCamera {
+            let source = f.videoSource()
+            capturer = RTCCameraVideoCapturer(delegate: source)
+            let track = f.videoTrack(with: source, trackId: "video0")
+            localTrack = track
+            pc.add(track, streamIds: ["cam"])          // addTrack: bên trả answer (xem phần Android)
+            pc.add(f.audioTrack(with: f.audioSource(with: nil), trackId: "audio0"), streamIds: ["cam"])
+            startCapture()
+            track.add(view)
+        } else {
+            let recv = RTCRtpTransceiverInit(); recv.direction = .recvOnly
+            pc.addTransceiver(of: .video, init: recv)
+            pc.addTransceiver(of: .audio, init: recv)
+            let dc = RTCDataChannelConfiguration(); dc.isOrdered = true
+            _ = pc.dataChannel(forLabel: "ctrl", configuration: dc)
+        }
+    }
+
+    private func startCapture() {
+        guard let cap = capturer,
+              let device = RTCCameraVideoCapturer.captureDevices().first(where: { $0.position == (useFront ? .front : .back) })
+                ?? RTCCameraVideoCapturer.captureDevices().first else { return }
+        let format = RTCCameraVideoCapturer.supportedFormats(for: device)
+            .min(by: { abs(CMVideoFormatDescriptionGetDimensions($0.formatDescription).width - 1280) < abs(CMVideoFormatDescriptionGetDimensions($1.formatDescription).width - 1280) })
+        guard let fmt = format else { return }
+        cap.startCapture(with: device, format: fmt, fps: 30)
+    }
+
+    private func sdpType(_ t: String) -> RTCSdpType { t == "offer" ? .offer : .answer }
+
+    func createOffer(iceRestart: Bool, done: @escaping (String?, String?) -> Void) {
+        let c = RTCMediaConstraints(mandatoryConstraints: iceRestart ? ["IceRestart": "true"] : nil, optionalConstraints: nil)
+        pc.offer(for: c) { sdp, err in done(sdp?.sdp, err?.localizedDescription ?? (sdp == nil ? "offer failed" : nil)) }
+    }
+    func createAnswer(done: @escaping (String?, String?) -> Void) {
+        pc.answer(for: RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil)) { sdp, err in
+            done(sdp?.sdp, err?.localizedDescription ?? (sdp == nil ? "answer failed" : nil))
+        }
+    }
+    func setLocal(type: String, sdp: String, done: @escaping (String?) -> Void) {
+        pc.setLocalDescription(RTCSessionDescription(type: sdpType(type), sdp: sdp)) { done($0?.localizedDescription) }
+    }
+    func setRemote(type: String, sdp: String, done: @escaping (String?) -> Void) {
+        pc.setRemoteDescription(RTCSessionDescription(type: sdpType(type), sdp: sdp)) { done($0?.localizedDescription) }
+    }
+    func addCandidate(candidate: String, sdpMid: String?, sdpMLineIndex: Int32, done: @escaping (String?) -> Void) {
+        pc.add(RTCIceCandidate(sdp: candidate, sdpMLineIndex: sdpMLineIndex, sdpMid: sdpMid)) { done($0?.localizedDescription) }
+    }
+    func videoView() -> UIView? { view }
+    func switchCamera() { useFront.toggle(); capturer?.stopCapture { [weak self] in self?.startCapture() } }
+    func close() { capturer?.stopCapture(); pc.close() }
+
+    // RTCPeerConnectionDelegate
+    func peerConnection(_ pc: RTCPeerConnection, didGenerate c: RTCIceCandidate) {
+        listener.onCandidate(candidate: c.sdp, sdpMid: c.sdpMid, sdpMLineIndex: c.sdpMLineIndex)
+    }
+    func peerConnection(_ pc: RTCPeerConnection, didChange s: RTCIceGatheringState) { if s == .complete { listener.onGatheringComplete() } }
+    func peerConnection(_ pc: RTCPeerConnection, didChange s: RTCPeerConnectionState) {
+        let names: [RTCPeerConnectionState: String] = [.new: "new", .connecting: "connecting", .connected: "connected",
+                                                        .disconnected: "disconnected", .failed: "failed", .closed: "closed"]
+        listener.onConnectionState(state: names[s] ?? "new")
+    }
+    func peerConnection(_ pc: RTCPeerConnection, didStartReceivingOn t: RTCRtpTransceiver) {
+        if let track = t.receiver.track as? RTCVideoTrack { DispatchQueue.main.async { self.remoteTrack = track; track.add(self.view) } }
+    }
+    func peerConnection(_ pc: RTCPeerConnection, didChange s: RTCSignalingState) {}
+    func peerConnection(_ pc: RTCPeerConnection, didAdd s: RTCMediaStream) {}
+    func peerConnection(_ pc: RTCPeerConnection, didRemove s: RTCMediaStream) {}
+    func peerConnectionShouldNegotiate(_ pc: RTCPeerConnection) {}
+    func peerConnection(_ pc: RTCPeerConnection, didChange s: RTCIceConnectionState) {}
+    func peerConnection(_ pc: RTCPeerConnection, didRemove c: [RTCIceCandidate]) {}
+    func peerConnection(_ pc: RTCPeerConnection, didOpen dc: RTCDataChannel) {}
+}
+```
+
+Trong Compose (iosMain), vẽ bằng `UIKitView(factory = { peer.swift.videoView()!! })`.
+
 ## Đã kiểm / chưa kiểm
 
 - **JVM, mỗi lần đổi code:** mọi hàng trong bảng trên, bằng peer giả theo luật của RTCPeerConnection thật và kênh báo hiệu giả có thể đảo thứ tự hay chậm;
   thời gian ảo nên các hạn 10–20 giây được đo đúng từng mili-giây. SDP thử trên offer dạng Chrome.
-- **Chưa có:** peer thật cho Android/iOS (bước K3b), chưa thử với trình duyệt hay thiết bị thật.
+- **Android:** `AndroidRtcPeer` biên dịch được (SDK 36); **chưa chạy trên máy thật** (máy dựng không có KVM để chạy emulator).
+- **libwebrtc thật trên JVM (trong app Recam, `RealMediaTest`, webrtc-java 0.14.0):** cùng cách dựng như peer Android, video qua server Recam thật tới bên xem, cả đường trực tiếp lẫn ép qua TURN. Đổi bên gửi sang `addTransceiver` thì vẫn "Connected" nhưng không có khung hình: đã thử.
+- **iOS:** `IosRtcPeer` và lớp Swift mẫu **chưa biên dịch** (cần Mac/Xcode).

@@ -33,6 +33,10 @@ kotlin {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
         }
+        if (!desktopOnly) {
+            // libwebrtc của Google, bản dựng sẵn trên Maven Central (gói org.webrtc như bản gốc).
+            val androidMain by getting { dependencies { api(libs.stream.webrtc.android) } }
+        }
     }
 }
 
