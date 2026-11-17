@@ -11,7 +11,7 @@ import kotlin.coroutines.resumeWithException
  * RtcPeer thật cho iOS. libwebrtc (gói Swift `WebRTC`, github.com/stasel/WebRTC) dùng từ Swift gọn hơn cinterop, nên Swift cài
  * hai giao diện dưới đây (mẫu `SwiftRtcPeer.swift` ở docs/webrtc.md) và gán một lần lúc khởi động:
  *
- *     IosRtc.shared.factory = SwiftRtcFactory()
+ *     IosRtc.shared.factory = WebRtcFactory()      // lớp Swift trong docs/webrtc.md; framework phải export appkit-webrtc
  *
  * Kotlin dùng [IosRtcPeer] như mọi RtcPeer khác (CallSession lo thứ tự). Giao diện dùng callback, chuỗi và số để Swift cài được.
  */

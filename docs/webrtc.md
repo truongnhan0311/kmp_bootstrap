@@ -107,23 +107,23 @@ cam.setVideoQuality(640, 480, 24)                                   // hạ bậ
 
 libwebrtc dùng từ Swift (gói [`WebRTC`](https://github.com/stasel/WebRTC) qua Swift Package Manager). Kotlin có `IosRtcPeer` bọc hai
 giao diện `SwiftRtcFactory`/`SwiftRtcPeer`; app chép lớp Swift dưới đây vào `iosApp` và gán lúc khởi động
-`IosRtc.shared.factory = SwiftRtcFactory()`. Info.plist cần `NSCameraUsageDescription`, `NSMicrophoneUsageDescription`.
+`IosRtc.shared.factory = WebRtcFactory()` (tên lớp Swift không được trùng tên protocol Kotlin). Framework Kotlin phải `export("kmp.bootstrap:appkit-webrtc")` để Swift thấy protocol. Info.plist cần `NSCameraUsageDescription`, `NSMicrophoneUsageDescription`.
 
 ```swift
 import WebRTC
 import ComposeApp   // framework Kotlin của app
 
-final class SwiftRtcFactory: NSObject, kmp.bootstrap.appkit.webrtc.SwiftRtcFactory {
+final class WebRtcFactory: NSObject, SwiftRtcFactory {
     static let factory: RTCPeerConnectionFactory = {
         RTCInitializeSSL()
         return RTCPeerConnectionFactory(encoderFactory: RTCDefaultVideoEncoderFactory(), decoderFactory: RTCDefaultVideoDecoderFactory())
     }()
     func create(iceJson: String, sendCamera: Bool, listener: SwiftRtcListener) -> SwiftRtcPeer {
-        SwiftRtcPeerImpl(iceJson: iceJson, sendCamera: sendCamera, listener: listener)
+        WebRtcPeer(iceJson: iceJson, sendCamera: sendCamera, listener: listener)
     }
 }
 
-final class SwiftRtcPeerImpl: NSObject, SwiftRtcPeer, RTCPeerConnectionDelegate {
+final class WebRtcPeer: NSObject, SwiftRtcPeer, RTCPeerConnectionDelegate {
     private let listener: SwiftRtcListener
     private var pc: RTCPeerConnection!
     private var capturer: RTCCameraVideoCapturer?
@@ -135,7 +135,7 @@ final class SwiftRtcPeerImpl: NSObject, SwiftRtcPeer, RTCPeerConnectionDelegate 
     init(iceJson: String, sendCamera: Bool, listener: SwiftRtcListener) {
         self.listener = listener
         super.init()
-        let f = SwiftRtcFactory.factory
+        let f = WebRtcFactory.factory
         let config = RTCConfiguration()
         config.sdpSemantics = .unifiedPlan
         config.continualGatheringPolicy = .gatherContinually
